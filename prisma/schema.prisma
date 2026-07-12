@@ -1,0 +1,326 @@
+// PFOS — Personal Finance Operating System
+// Double-entry ledger kept in a "net-worth frame":
+//   Every LedgerEntry.amount is a SIGNED contribution to net worth.
+//   +ve  => net worth goes up for this account (asset increases, or liability owed shrinks)
+//   -ve  => net worth goes down for this account (asset decreases, or liability owed grows)
+//   Transfers / settlements conserve net worth => their entries sum to 0.
+//   Income / expense / adjustment touch a real account + an external (equity) side,
+//   so net worth changes by the entry amount.
+//
+// Displayed account balance:
+//   ASSET      -> signedBalance (positive = you have money)
+//   LIABILITY  -> -signedBalance (positive = you owe)
+//
+// Master data (account types, categories, transaction types, tags) live in tables so
+// they are fully user-configurable. Engine behavior keys off stable enum fields
+// (AccountNature, TxnKind) rather than off the human-editable names.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums (structural — drive the accounting engine)
+// ─────────────────────────────────────────────────────────────
+
+enum AccountNature {
+  ASSET
+  LIABILITY
+  EQUITY // external world: income source, expense sink, opening balances, adjustments
+}
+
+enum TxnKind {
+  INCOME
+  EXPENSE
+  TRANSFER
+  INVESTMENT
+  WITHDRAWAL
+  ADJUSTMENT
+  OPENING
+  SNAPSHOT
+}
+
+// ─────────────────────────────────────────────────────────────
+// Identity (no auth yet — a single default user is seeded)
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  baseCurrency String @default("INR")
+  createdAt DateTime @default(now())
+
+  accounts     Account[]
+  transactions Transaction[]
+  categories   Category[]
+  accountTypes AccountType[]
+  txnTypes     TransactionType[]
+  tags         Tag[]
+  goals        Goal[]
+  recurring    RecurringRule[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// Configurable master data
+// ─────────────────────────────────────────────────────────────
+
+model AccountType {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  nature    AccountNature
+  icon      String?
+  color     String?
+  sortOrder Int           @default(0)
+  isSystem  Boolean       @default(false)
+  // Investment accounts track invested vs current value (for gain/loss); drives the add form.
+  isInvestment Boolean    @default(false)
+  // Statement-cycle accounts (credit cards) capture a statement day + due day, used for reminders.
+  hasStatementCycle Boolean @default(false)
+  createdAt DateTime      @default(now())
+
+  accounts Account[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  // optional grouping hint for pickers; does not constrain the engine
+  kind      TxnKind?
+  icon      String?
+  color     String?
+  sortOrder Int      @default(0)
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model TransactionType {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  kind      TxnKind // stable behavior key
+  icon      String?
+  color     String?
+  sortOrder Int      @default(0)
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String?
+  createdAt DateTime @default(now())
+
+  transactions TransactionTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Accounts
+// ─────────────────────────────────────────────────────────────
+
+model Account {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  accountTypeId String
+  accountType   AccountType @relation(fields: [accountTypeId], references: [id])
+  currency      String      @default("INR")
+
+  // Opening balance is stored in the net-worth frame (asset +ve, liability -ve).
+  openingBalance Decimal  @default(0) @db.Decimal(18, 2)
+  openingDate    DateTime @default(now())
+
+  // Optional metadata used by the dashboard / reminders
+  institution String?
+  last4       String?
+  statementDayOfMonth Int? // for credit cards: statement/closing day of the cycle
+  dueDayOfMonth       Int? // for credit cards: bill due day
+  note        String?
+
+  isActive   Boolean @default(true)
+  isArchived Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ledgerEntries LedgerEntry[]
+  snapshots     Snapshot[]
+  txnFrom       Transaction[] @relation("fromAccount")
+  txnTo         Transaction[] @relation("toAccount")
+
+  @@index([userId])
+  @@index([userId, accountTypeId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Transactions + double-entry ledger
+// ─────────────────────────────────────────────────────────────
+
+model Transaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  typeId String
+  type   TransactionType @relation(fields: [typeId], references: [id])
+  kind   TxnKind // denormalized from type for fast filtering
+
+  date        DateTime
+  amount      Decimal  @db.Decimal(18, 2) // positive magnitude of the movement
+  description String? // merchant / memo shown in lists
+  note        String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  // Convenience references (source of truth for balances is LedgerEntry)
+  fromAccountId String?
+  fromAccount   Account? @relation("fromAccount", fields: [fromAccountId], references: [id])
+  toAccountId   String?
+  toAccount     Account? @relation("toAccount", fields: [toAccountId], references: [id])
+
+  // Snapshot / reconciliation linkage
+  snapshotId String?   @unique
+  snapshot   Snapshot? @relation(fields: [snapshotId], references: [id])
+
+  entries LedgerEntry[]
+  tags    TransactionTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, kind])
+  @@index([categoryId])
+}
+
+model LedgerEntry {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  accountId     String
+  account       Account     @relation(fields: [accountId], references: [id])
+
+  // Signed contribution to net worth (see file header).
+  amount Decimal  @db.Decimal(18, 2)
+  date   DateTime // copied from transaction for fast per-account range queries
+
+  createdAt DateTime @default(now())
+
+  @@index([accountId, date])
+  @@index([transactionId])
+}
+
+model TransactionTag {
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tagId         String
+  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, tagId])
+  @@index([tagId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Snapshots (manual mark-to-market + point-in-time record)
+// ─────────────────────────────────────────────────────────────
+
+model Snapshot {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date      DateTime
+
+  // Target account balance in net-worth frame at this date.
+  balance Decimal @db.Decimal(18, 2)
+
+  // Investment detail (optional)
+  investedValue Decimal? @db.Decimal(18, 2)
+  currentValue  Decimal? @db.Decimal(18, 2)
+  units         Decimal? @db.Decimal(18, 4)
+
+  note      String?
+  createdAt DateTime @default(now())
+
+  // If this snapshot forced a reconciliation, the generated adjustment lives here.
+  adjustment Transaction?
+
+  @@index([accountId, date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Goals (dashboard: Emergency Fund 2,00,000 / 10,00,000)
+// ─────────────────────────────────────────────────────────────
+
+model Goal {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  targetAmount Decimal   @db.Decimal(18, 2)
+  // Either tracked manually or linked to accounts (sum of their balances)
+  manualAmount Decimal?  @db.Decimal(18, 2)
+  linkedAccountIds String[] @default([])
+  targetDate   DateTime?
+  icon         String?
+  color        String?
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Recurring rules (future engine — schema stub so we can build on it)
+// ─────────────────────────────────────────────────────────────
+
+model RecurringRule {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  kind      TxnKind
+  amount    Decimal  @db.Decimal(18, 2)
+  fromAccountId String?
+  toAccountId   String?
+  categoryId    String?
+  // cron-ish schedule
+  frequency String // e.g. MONTHLY, WEEKLY
+  dayOfMonth Int?
+  nextRunAt DateTime?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

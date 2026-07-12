@@ -1,65 +1,143 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowUpRight, ArrowDownRight, Wallet, CreditCard, CalendarClock } from "lucide-react";
+import { getDashboard } from "@/lib/queries";
+import { getReminders } from "@/lib/reminders";
+import { getTrends } from "@/lib/trends";
+import { formatINR } from "@/lib/money";
+import { Card } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { AccountRow } from "@/components/account-row";
+import { TrendsSection } from "@/components/trends-section";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const [data, reminders, trends] = await Promise.all([getDashboard(), getReminders(), getTrends()]);
+  const hasAccounts = data.accounts.length > 0;
+  const up = data.monthChange >= 0;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="space-y-6">
+      {/* Net worth hero */}
+      <section className="pt-6">
+        <p className="text-sm font-medium text-muted-foreground">Net Worth</p>
+        <h1 className="mt-1 text-5xl font-semibold tracking-tight tabular-nums">
+          {formatINR(data.netWorth)}
+        </h1>
+        <p
+          className={`mt-2 flex items-center gap-1 text-sm font-medium ${
+            up ? "text-emerald-400" : "text-red-400"
+          }`}
+        >
+          {up ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
+          {formatINR(Math.abs(data.monthChange))} this month
+        </p>
+      </section>
+
+      {!hasAccounts ? (
+        <Card className="flex flex-col items-center gap-3 p-8 text-center">
+          <Wallet className="size-8 text-muted-foreground" />
+          <div>
+            <p className="font-medium">No accounts yet</p>
+            <p className="text-sm text-muted-foreground">
+              Add your banks, cards and investments to see your net worth.
+            </p>
+          </div>
+          <Link href="/accounts" className={buttonVariants()}>
+            Add your first account
+          </Link>
+        </Card>
+      ) : (
+        <>
+          {/* Reminders */}
+          {reminders.length > 0 ? (
+            <section className="space-y-2">
+              <h2 className="px-1 text-sm font-medium text-muted-foreground">Reminders</h2>
+              <Card className="divide-y divide-border/60 p-0">
+                {reminders.slice(0, 5).map((r) => {
+                  const Icon = r.kind === "due" ? CreditCard : CalendarClock;
+                  const soon = r.daysUntil <= 3;
+                  return (
+                    <Link
+                      key={r.id}
+                      href={`/accounts/${r.accountId}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                    >
+                      <div
+                        className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
+                          soon ? "bg-red-500/15 text-red-400" : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <Icon className="size-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{r.title}</p>
+                        <p className="truncate text-xs text-muted-foreground first-letter:uppercase">{r.subtitle}</p>
+                      </div>
+                      {r.amount != null ? (
+                        <span className="text-sm font-semibold tabular-nums text-red-400">
+                          {formatINR(r.amount)}
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </Card>
+            </section>
+          ) : null}
+
+          {/* Assets vs liabilities */}
+          <section className="grid grid-cols-2 gap-3">
+            <Card className="gap-1 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Assets</p>
+              <p className="text-xl font-semibold tabular-nums">{formatINR(data.assets)}</p>
+            </Card>
+            <Card className="gap-1 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Liabilities</p>
+              <p className="text-xl font-semibold tabular-nums text-red-400">
+                {formatINR(data.liabilities)}
+              </p>
+            </Card>
+          </section>
+
+          {/* Trends */}
+          <TrendsSection trends={trends} />
+
+          {/* Breakdown by account type */}
+          <section className="space-y-2">
+            <h2 className="px-1 text-sm font-medium text-muted-foreground">Breakdown</h2>
+            <Card className="divide-y divide-border/60 p-0">
+              {data.byType.map((t) => (
+                <div key={t.typeId} className="flex items-center justify-between px-4 py-3">
+                  <span className="text-sm font-medium">{t.typeName}</span>
+                  <span
+                    className={`text-sm font-semibold tabular-nums ${
+                      t.nature === "LIABILITY" ? "text-red-400" : ""
+                    }`}
+                  >
+                    {formatINR(t.total)}
+                  </span>
+                </div>
+              ))}
+            </Card>
+          </section>
+
+          {/* Accounts */}
+          <section className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-sm font-medium text-muted-foreground">Accounts</h2>
+              <Link href="/accounts" className="text-sm font-medium text-primary">
+                Manage
+              </Link>
+            </div>
+            <Card className="divide-y divide-border/60 p-0">
+              {data.accounts.map((a) => (
+                <AccountRow key={a.id} account={a} />
+              ))}
+            </Card>
+          </section>
+        </>
+      )}
     </div>
   );
 }

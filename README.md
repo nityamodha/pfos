@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PFOS — Personal Finance Operating System
 
-## Getting Started
+A dashboard for your financial life. **Not an expense tracker** — its job is to answer
+_"what is my net worth and how did it change?"_ Every transaction exists only to explain a
+movement in net worth.
 
-First, run the development server:
+- **Stack:** Next.js (App Router) · TypeScript · Tailwind v4 · shadcn/ui (Base UI) · Prisma 7 · Supabase Postgres · PWA · Vercel
+- **Mobile-first**, dark-first, installable.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## The accounting model (why this stays accurate)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Everything is an **Account** (bank, credit card, mutual fund, stock, cash, gold, loan…).
+Money moves _between_ accounts. Internally we keep a **double-entry ledger in a "net-worth frame"**:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Every `LedgerEntry.amount` is a **signed contribution to net worth**.
+  `+` = net worth goes up for that account (asset grows, or a liability shrinks); `−` = the opposite.
+- **Transfers/settlements sum to 0** (paying a credit-card bill moves cash → card, net worth unchanged).
+- **Income/expense** touch one real account; the other side is the external world (equity), so net worth moves.
+- **Net worth = sum of every ledger entry + opening balances.** Monthly change = sum of this month's entries.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Displayed balances: assets show positive when funded, liabilities show positive when owed.
 
-## Learn More
+Master data — **account types, categories, transaction types, tags — live in tables and are fully
+configurable**. The engine keys off stable enum fields (`AccountNature`, `TxnKind`), not the editable names.
 
-To learn more about Next.js, take a look at the following resources:
+### Never lose confidence in your data
+- **Reconcile**: type your real balance; the system posts an `Adjustment` to match. It never blocks you.
+- **Snapshots**: periodic manual balances / mark-to-market for investments.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Local setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Add your Supabase connection strings** to `.env` (see `.env.example`):
+   - `DATABASE_URL` — the **pooled** string (port `6543`, add `?pgbouncer=true&connection_limit=1`). Used at runtime.
+   - `DIRECT_URL` — the **direct/session** string (port `5432`). Used for migrations.
+   Find both in Supabase → Project Settings → Database → Connection string.
 
-## Deploy on Vercel
+2. Install, migrate, seed, run:
+   ```bash
+   npm install
+   npm run db:migrate      # creates tables (uses DIRECT_URL)
+   npm run db:seed         # seeds default user + account types + categories + txn types
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open http://localhost:3000.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Useful scripts
+
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run db:migrate` | Create/apply a migration locally |
+| `npm run db:deploy` | Apply migrations (CI / production) |
+| `npm run db:seed` | Seed configurable master data |
+| `npm run db:reset` | Drop, re-migrate, re-seed |
+| `npm run db:studio` | Prisma Studio |
+
+## Deploy to Vercel
+
+1. Push to GitHub, import into Vercel.
+2. Set env vars **DATABASE_URL** and **DIRECT_URL** (same as local).
+3. Build runs `prisma generate` via `postinstall`. Run `npm run db:deploy` against your DB when the
+   schema changes (e.g. as a one-off or a deploy hook).
+
+## App map
+
+- `/` Dashboard — net worth hero, monthly change, assets/liabilities, breakdown by type, accounts.
+- `/accounts` — accounts grouped by type; add account.
+- `/add` — <10s transaction entry (fields adapt to the transaction kind).
+- `/transactions` — recent activity.
+- `/settings` — view seeded master data (in-app editing next).
+
+## Roadmap (next)
+Reconcile & snapshot UI · in-app master-data editing · goals & reminders on the home screen ·
+net-worth trend chart · recurring rules (SIP/salary/EMI) · CSV import · auth (schema already carries `userId`).
