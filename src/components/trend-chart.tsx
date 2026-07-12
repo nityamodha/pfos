@@ -124,10 +124,9 @@ export function TrendChart({
                     type="monotone"
                     dataKey={a.id}
                     name={a.name}
-                    stackId="1"
                     stroke={PALETTE[i % PALETTE.length]}
                     fill={PALETTE[i % PALETTE.length]}
-                    fillOpacity={0.25}
+                    fillOpacity={0.2}
                     strokeWidth={1.5}
                   />
                 ))
