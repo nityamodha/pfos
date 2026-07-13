@@ -37,17 +37,25 @@ type AccountData = {
   typeId: string;
   statementDayOfMonth: number | null;
   dueDayOfMonth: number | null;
+  isPrimary: boolean;
+  settlementAccountId: string | null;
 };
+
+type SettlementAccount = { id: string; name: string };
 
 export function EditAccountForm({
   account,
   accountTypes,
+  settlementAccounts,
 }: {
   account: AccountData;
   accountTypes: AccountType[];
+  settlementAccounts: SettlementAccount[];
 }) {
   const [open, setOpen] = useState(false);
   const [typeId, setTypeId] = useState(account.typeId);
+  const [isPrimary, setIsPrimary] = useState(account.isPrimary);
+  const [settlementAccountId, setSettlementAccountId] = useState(account.settlementAccountId ?? "");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -57,6 +65,8 @@ export function EditAccountForm({
   function onSubmit(formData: FormData) {
     formData.set("id", account.id);
     formData.set("accountTypeId", typeId);
+    formData.set("isPrimary", isPrimary ? "true" : "false");
+    if (hasStatementCycle) formData.set("settlementAccountId", settlementAccountId);
     startTransition(async () => {
       try {
         await updateAccount(formData);
@@ -152,6 +162,46 @@ export function EditAccountForm({
               </div>
             </div>
           ) : null}
+
+          {hasStatementCycle ? (
+            <div className="space-y-2">
+              <Label>Settlement account</Label>
+              <Select
+                value={settlementAccountId}
+                onValueChange={(v) => setSettlementAccountId(v ?? "")}
+                items={settlementAccounts.map((a) => ({ label: a.name, value: a.id }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Which account pays this card" />
+                </SelectTrigger>
+                <SelectContent>
+                  {settlementAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Bills are deducted from this account in the forecast.
+              </p>
+            </div>
+          ) : null}
+
+          <label className="flex items-center gap-3 rounded-xl bg-muted/40 p-3">
+            <input
+              type="checkbox"
+              checked={isPrimary}
+              onChange={(e) => setIsPrimary(e.target.checked)}
+              className="size-4 accent-primary"
+            />
+            <span className="text-sm">
+              <span className="font-medium">Primary account for forecast</span>
+              <span className="block text-xs text-muted-foreground">
+                Show this account&rsquo;s cash-flow projection on Home.
+              </span>
+            </span>
+          </label>
 
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button type="submit" disabled={pending} className="w-full">

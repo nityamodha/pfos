@@ -169,7 +169,13 @@ model Account {
 
   isActive   Boolean @default(true)
   isArchived Boolean @default(false)
+  isPrimary  Boolean @default(false) // the account whose cash-flow forecast shows on Home
   sortOrder  Int     @default(0)
+
+  // For credit cards: which cash account settles this card's bill.
+  settlementAccountId String?
+  settlementAccount   Account?  @relation("settlement", fields: [settlementAccountId], references: [id])
+  settledCards        Account[] @relation("settlement")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

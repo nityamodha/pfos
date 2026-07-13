@@ -16,6 +16,8 @@ export type AccountWithBalance = {
   hasStatementCycle: boolean;
   statementDayOfMonth: number | null;
   dueDayOfMonth: number | null;
+  isPrimary: boolean;
+  settlementAccountId: string | null;
   displayBalance: number; // assets: cash/current value; liabilities: amount owed
   signedBalance: number; // net-worth contribution
   invested: number | null; // latest snapshot invested value (investments only)
@@ -57,6 +59,8 @@ export async function getAccountsWithBalances(): Promise<AccountWithBalance[]> {
       hasStatementCycle: a.accountType.hasStatementCycle,
       statementDayOfMonth: a.statementDayOfMonth,
       dueDayOfMonth: a.dueDayOfMonth,
+      isPrimary: a.isPrimary,
+      settlementAccountId: a.settlementAccountId,
       displayBalance: displayBalance(signed, a.accountType.nature),
       signedBalance: signed,
       invested,
@@ -149,6 +153,36 @@ export async function getDashboard(): Promise<DashboardData> {
     byType: [...typeMap.values()].filter((t) => t.total !== 0),
     accounts,
   };
+}
+
+export type RecurringRuleItem = {
+  id: string;
+  name: string;
+  kind: string;
+  amount: number;
+  fromAccountId: string | null;
+  toAccountId: string | null;
+  dayOfMonth: number | null;
+  frequency: string;
+  isActive: boolean;
+};
+
+export async function getRecurringRules(): Promise<RecurringRuleItem[]> {
+  const rules = await prisma.recurringRule.findMany({
+    where: { userId: DEFAULT_USER_ID },
+    orderBy: [{ dayOfMonth: "asc" }, { name: "asc" }],
+  });
+  return rules.map((r) => ({
+    id: r.id,
+    name: r.name,
+    kind: r.kind,
+    amount: toNumber(r.amount),
+    fromAccountId: r.fromAccountId,
+    toAccountId: r.toAccountId,
+    dayOfMonth: r.dayOfMonth,
+    frequency: r.frequency,
+    isActive: r.isActive,
+  }));
 }
 
 /** Master data for pickers. */

@@ -161,13 +161,79 @@ export async function updateAccount(formData: FormData) {
   const type = await prisma.accountType.findUniqueOrThrow({ where: { id: accountTypeId } });
   const statementDayOfMonth = type.hasStatementCycle ? dayOfMonth(formData.get("statementDayOfMonth")) : null;
   const dueDayOfMonth = type.hasStatementCycle ? dayOfMonth(formData.get("dueDayOfMonth")) : null;
+  const isPrimary = formData.get("isPrimary") === "on" || formData.get("isPrimary") === "true";
+  const settlementAccountId = type.hasStatementCycle
+    ? String(formData.get("settlementAccountId") ?? "") || null
+    : null;
 
-  await prisma.account.update({
-    where: { id },
-    data: { name, accountTypeId, institution, statementDayOfMonth, dueDayOfMonth },
+  await prisma.$transaction(async (tx) => {
+    // At most one account can be the primary forecast account.
+    if (isPrimary) {
+      await tx.account.updateMany({
+        where: { userId: DEFAULT_USER_ID, isPrimary: true, NOT: { id } },
+        data: { isPrimary: false },
+      });
+    }
+    await tx.account.update({
+      where: { id },
+      data: { name, accountTypeId, institution, statementDayOfMonth, dueDayOfMonth, isPrimary, settlementAccountId },
+    });
   });
   revalidateAll();
   revalidatePath(`/accounts/${id}`);
+}
+
+const RULE_KINDS = new Set(["INCOME", "EXPENSE", "INVESTMENT"]);
+
+function ruleFields(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const kind = String(formData.get("kind") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+  const day = dayOfMonth(formData.get("dayOfMonth"));
+  const fromAccountId = String(formData.get("fromAccountId") ?? "") || null;
+  const toAccountId = String(formData.get("toAccountId") ?? "") || null;
+
+  if (!name) throw new Error("Give the rule a name");
+  if (!RULE_KINDS.has(kind)) throw new Error("Pick a valid type");
+  if (!amount || amount <= 0) throw new Error("Enter an amount greater than zero");
+  if (day === null) throw new Error("Enter the day of month (1–31)");
+  // Income lands in an account; expense/investment leaves an account.
+  if (kind === "INCOME" && !toAccountId) throw new Error("Pick the account the money lands in");
+  if (kind !== "INCOME" && !fromAccountId) throw new Error("Pick the account the money leaves");
+
+  return {
+    name,
+    kind: kind as TxnKind,
+    amount: toDecimal(amount),
+    dayOfMonth: day,
+    frequency: "MONTHLY",
+    fromAccountId: kind === "INCOME" ? null : fromAccountId,
+    toAccountId: kind === "INCOME" ? toAccountId : null,
+  };
+}
+
+export async function createRecurringRule(formData: FormData) {
+  const data = ruleFields(formData);
+  await prisma.recurringRule.create({ data: { userId: DEFAULT_USER_ID, ...data } });
+  revalidateAll();
+  revalidatePath("/planned");
+}
+
+export async function updateRecurringRule(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("Rule is required");
+  const data = ruleFields(formData);
+  await prisma.recurringRule.update({ where: { id }, data });
+  revalidateAll();
+  revalidatePath("/planned");
+}
+
+export async function deleteRecurringRule(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("Rule is required");
+  await prisma.recurringRule.delete({ where: { id } });
+  revalidateAll();
+  revalidatePath("/planned");
 }
 
 export async function archiveAccount(formData: FormData) {

@@ -3,16 +3,23 @@ import { ArrowUpRight, ArrowDownRight, Wallet, CreditCard, CalendarClock } from 
 import { getDashboard } from "@/lib/queries";
 import { getReminders } from "@/lib/reminders";
 import { getTrends } from "@/lib/trends";
+import { getForecast } from "@/lib/forecast";
 import { formatINR } from "@/lib/money";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { AccountRow } from "@/components/account-row";
 import { TrendsSection } from "@/components/trends-section";
+import { ForecastSection } from "@/components/forecast-section";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [data, reminders, trends] = await Promise.all([getDashboard(), getReminders(), getTrends()]);
+  const [data, reminders, trends, forecast] = await Promise.all([
+    getDashboard(),
+    getReminders(),
+    getTrends(),
+    getForecast(),
+  ]);
   const hasAccounts = data.accounts.length > 0;
   const up = data.monthChange >= 0;
 
@@ -99,6 +106,9 @@ export default async function DashboardPage() {
               </p>
             </Card>
           </section>
+
+          {/* Forecast */}
+          <ForecastSection forecast={forecast} />
 
           {/* Trends */}
           <TrendsSection trends={trends} />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { getAccountDetail, getMasterData } from "@/lib/queries";
+import { getAccountDetail, getMasterData, getAccountsWithBalances } from "@/lib/queries";
 import { formatINR } from "@/lib/money";
 import { accountIcon } from "@/lib/icons";
 import { Card } from "@/components/ui/card";
@@ -16,10 +16,18 @@ function fmtDate(d: Date) {
 
 export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [detail, master] = await Promise.all([getAccountDetail(id), getMasterData()]);
+  const [detail, master, allAccounts] = await Promise.all([
+    getAccountDetail(id),
+    getMasterData(),
+    getAccountsWithBalances(),
+  ]);
   if (!detail) notFound();
 
   const { account, history } = detail;
+  // Cash accounts that can settle a card bill (exclude investments, liabilities and this account).
+  const settlementAccounts = allAccounts
+    .filter((a) => a.nature === "ASSET" && !a.isInvestment && a.id !== account.id)
+    .map((a) => ({ id: a.id, name: a.name }));
   const Icon = accountIcon(account.icon);
   const isLiability = account.nature === "LIABILITY";
 
@@ -79,8 +87,11 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               typeId: account.typeId,
               statementDayOfMonth: account.statementDayOfMonth,
               dueDayOfMonth: account.dueDayOfMonth,
+              isPrimary: account.isPrimary,
+              settlementAccountId: account.settlementAccountId,
             }}
             accountTypes={master.accountTypes}
+            settlementAccounts={settlementAccounts}
           />
         </div>
 

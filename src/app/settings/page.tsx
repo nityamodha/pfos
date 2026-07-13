@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { getMasterData } from "@/lib/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +12,19 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="pt-4 text-2xl font-semibold tracking-tight">Settings</h1>
+
+      <Card className="p-0">
+        <Link
+          href="/planned"
+          className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/40"
+        >
+          <div>
+            <p className="text-sm font-medium">Planned money</p>
+            <p className="text-xs text-muted-foreground">Salary, SIPs and EMIs for the forecast</p>
+          </div>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+      </Card>
 
       <Section title="Account types" hint="Editable master data">
         {accountTypes.map((t) => (
