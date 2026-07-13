@@ -52,6 +52,8 @@ enum TxnKind {
 model User {
   id        String   @id @default(cuid())
   email     String?  @unique
+  username  String?  @unique
+  passwordHash String?
   name      String?
   baseCurrency String @default("INR")
   createdAt DateTime @default(now())
@@ -64,6 +66,18 @@ model User {
   tags         Tag[]
   goals        Goal[]
   recurring    RecurringRule[]
+  sessions     Session[]
+}
+
+// Simple DB-backed session (no external auth library — single-user app).
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Wallet, Plus, ArrowLeftRight, Settings, CalendarClock, Sparkles } from "lucide-react";
+import { Home, Wallet, Plus, ArrowLeftRight, Settings, CalendarClock, Sparkles, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logout } from "@/lib/auth-actions";
 
 const items = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -62,6 +63,16 @@ export function SidebarNav() {
           );
         })}
       </nav>
+
+      <form action={logout}>
+        <button
+          type="submit"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground"
+        >
+          <LogOut className="size-4.5" strokeWidth={2} />
+          Log out
+        </button>
+      </form>
     </aside>
   );
 }

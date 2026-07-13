@@ -1,12 +1,17 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "../src/lib/password";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
 });
 const prisma = new PrismaClient({ adapter });
 const USER_ID = "user_default";
+// Credentials live in .env (gitignored) — see SEED_USERNAME / SEED_PASSWORD.
+// Only set on seed if both are provided, so re-running seed without them is a no-op for auth.
+const USERNAME = process.env.SEED_USERNAME;
+const PASSWORD = process.env.SEED_PASSWORD;
 
 // Master data — all editable in-app later; this is just a sensible starting set.
 const ACCOUNT_TYPES: {
@@ -54,10 +59,20 @@ const TXN_TYPES: { name: string; kind: "INCOME" | "EXPENSE" | "TRANSFER" | "INVE
 ];
 
 async function main() {
+  const credentials =
+    USERNAME && PASSWORD
+      ? { username: USERNAME, passwordHash: hashPassword(PASSWORD) }
+      : {};
+
   await prisma.user.upsert({
     where: { id: USER_ID },
-    update: {},
-    create: { id: USER_ID, name: "Me", baseCurrency: "INR" },
+    update: credentials,
+    create: {
+      id: USER_ID,
+      name: "Me",
+      baseCurrency: "INR",
+      ...credentials,
+    },
   });
 
   for (const t of ACCOUNT_TYPES) {

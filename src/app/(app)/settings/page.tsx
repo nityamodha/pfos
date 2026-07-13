@@ -3,6 +3,8 @@ import { ChevronRight } from "lucide-react";
 import { getMasterData } from "@/lib/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { logout } from "@/lib/auth-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,12 @@ export default async function SettingsPage() {
         Editing master data in-app is coming next. These values are seeded and fully configurable in
         the database today.
       </p>
+
+      <form action={logout}>
+        <button type="submit" className={buttonVariants({ variant: "outline", className: "w-full" })}>
+          Log out
+        </button>
+      </form>
     </div>
   );
 }
