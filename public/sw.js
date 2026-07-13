@@ -1,5 +1,10 @@
 // Minimal service worker: enables installability + a lightweight offline shell.
-const CACHE = "pfos-v1";
+// v2: only content-hashed /_next/static assets are cache-first. Everything else
+// (page navigations AND same-origin RSC/data fetches issued by client-side
+// <Link> transitions) is network-first, so soft-navigating between tabs never
+// serves stale data — previously those data fetches fell into the cache-first
+// branch meant for static assets and could get stuck stale until a hard reload.
+const CACHE = "pfos-v2";
 const APP_SHELL = ["/", "/accounts", "/transactions", "/add", "/settings", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -14,27 +19,19 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+function isImmutableStaticAsset(url) {
+  return url.origin === self.location.origin && url.pathname.startsWith("/_next/static/");
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  // Network-first for navigations so data stays fresh; fall back to cached shell offline.
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match(request).then((r) => r || caches.match("/"))),
-    );
-    return;
-  }
-
-  // Cache-first for same-origin static assets.
   const url = new URL(request.url);
-  if (url.origin === self.location.origin) {
+
+  // Cache-first only for content-hashed build assets — safe because their URL
+  // changes whenever their content does.
+  if (isImmutableStaticAsset(url)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
@@ -45,6 +42,22 @@ self.addEventListener("fetch", (event) => {
             return res;
           }),
       ),
+    );
+    return;
+  }
+
+  // Network-first for everything else same-origin: full-page navigations,
+  // client-side RSC/data fetches, and unhashed assets. Falls back to cache
+  // (offline shell) only when the network is unavailable.
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(request).then((r) => r || (request.mode === "navigate" ? caches.match("/") : undefined))),
     );
   }
 });
