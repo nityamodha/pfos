@@ -14,8 +14,8 @@ export function AccountRow({ account }: { account: AccountWithBalance }) {
 
   return (
     <Link href={`/accounts/${account.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-        <Icon className="size-5 text-muted-foreground" />
+      <div className="bubble-icon size-9 bg-gradient-to-br from-white/80 to-secondary">
+        <Icon className="size-4.5 text-foreground/70" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{account.name}</p>
@@ -24,11 +24,11 @@ export function AccountRow({ account }: { account: AccountWithBalance }) {
         </p>
       </div>
       <div className="text-right">
-        <span className={`text-sm font-semibold tabular-nums ${isLiability ? "text-red-400" : ""}`}>
+        <span className={`text-sm font-semibold tabular-nums ${isLiability ? "text-red-600" : ""}`}>
           {formatINR(account.displayBalance)}
         </span>
         {gain != null ? (
-          <p className={`text-xs font-medium tabular-nums ${gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+          <p className={`text-xs font-medium tabular-nums ${gain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
             {gain >= 0 ? "▲" : "▼"} {formatINR(Math.abs(gain))}
           </p>
         ) : null}

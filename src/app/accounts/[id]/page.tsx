@@ -49,8 +49,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       {/* Header */}
       <section className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-full bg-muted">
-            <Icon className="size-5 text-muted-foreground" />
+          <div className="bubble-icon size-11 bg-gradient-to-br from-white/80 to-secondary">
+            <Icon className="size-5 text-foreground/70" />
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-xl font-semibold tracking-tight">{account.name}</h1>
@@ -65,11 +65,11 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
           <p className="text-sm text-muted-foreground">
             {isLiability ? "Outstanding" : account.isInvestment ? "Current value" : "Balance"}
           </p>
-          <p className={`text-4xl font-semibold tabular-nums ${isLiability ? "text-red-400" : ""}`}>
+          <p className={`text-4xl font-semibold tabular-nums ${isLiability ? "text-red-600" : ""}`}>
             {formatINR(account.displayBalance)}
           </p>
           {gain != null ? (
-            <p className={`mt-1 text-sm font-medium ${gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <p className={`mt-1 text-sm font-medium ${gain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
               {gain >= 0 ? "▲" : "▼"} {formatINR(Math.abs(gain))}
               {gainPct != null ? ` (${gainPct >= 0 ? "+" : "−"}${Math.abs(gainPct).toFixed(1)}%)` : ""}
               <span className="text-muted-foreground"> · invested {formatINR(account.invested!)}</span>
@@ -133,7 +133,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <span
                   className={`text-sm font-semibold tabular-nums ${
-                    h.signedAmount >= 0 ? "text-emerald-400" : "text-red-400"
+                    h.signedAmount >= 0 ? "text-emerald-600" : "text-red-600"
                   }`}
                 >
                   {h.signedAmount >= 0 ? "+" : "−"}

@@ -40,7 +40,7 @@ export function TransactionList({
       <Card className="divide-y divide-border/60 p-0">
         {txns.map((t) => {
           const sign = OUTFLOW.has(t.kind) ? "-" : INFLOW.has(t.kind) ? "+" : "";
-          const color = OUTFLOW.has(t.kind) ? "text-red-400" : INFLOW.has(t.kind) ? "text-emerald-400" : "";
+          const color = OUTFLOW.has(t.kind) ? "text-red-600" : INFLOW.has(t.kind) ? "text-emerald-600" : "";
           const editable = t.kind !== "ADJUSTMENT";
           return (
             <button

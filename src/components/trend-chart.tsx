@@ -15,14 +15,14 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 
 const PALETTE = [
-  "#34d399", // emerald
-  "#60a5fa", // blue
-  "#f472b6", // pink
-  "#fbbf24", // amber
-  "#a78bfa", // violet
-  "#22d3ee", // cyan
-  "#fb923c", // orange
-  "#4ade80", // green
+  "var(--chart-1)", // indigo
+  "var(--chart-2)", // cyan
+  "var(--chart-3)", // violet
+  "var(--chart-4)", // emerald
+  "var(--chart-5)", // rose
+  "#f59e0b", // amber
+  "#f97316", // orange
+  "#16a34a", // green
 ];
 
 type Mode = "total" | "individual";
@@ -31,7 +31,7 @@ export function TrendChart({
   title,
   group,
   range,
-  accent = "#60a5fa",
+  accent = "var(--chart-1)",
   liability = false,
 }: {
   title: string;
@@ -50,7 +50,7 @@ export function TrendChart({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className={cn("text-2xl font-semibold tabular-nums", liability && "text-red-400")}>
+          <p className={cn("text-2xl font-semibold tabular-nums", liability && "text-red-600")}>
             {formatINR(group.latestTotal)}
           </p>
         </div>

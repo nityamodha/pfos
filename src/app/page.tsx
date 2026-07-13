@@ -26,19 +26,36 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Net worth hero */}
-      <section className="pt-6">
-        <p className="text-sm font-medium text-muted-foreground">Net Worth</p>
-        <h1 className="mt-1 text-5xl font-semibold tracking-tight tabular-nums">
-          {formatINR(data.netWorth)}
-        </h1>
-        <p
-          className={`mt-2 flex items-center gap-1 text-sm font-medium ${
-            up ? "text-emerald-400" : "text-red-400"
-          }`}
-        >
-          {up ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
-          {formatINR(Math.abs(data.monthChange))} this month
-        </p>
+      <section className="pt-6 lg:flex lg:items-start lg:justify-between lg:gap-6">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Net Worth</p>
+          <h1 className="mt-1 text-5xl font-semibold tracking-tight tabular-nums">
+            {formatINR(data.netWorth)}
+          </h1>
+          <p
+            className={`mt-2 flex items-center gap-1 text-sm font-medium ${
+              up ? "text-emerald-600" : "text-red-600"
+            }`}
+          >
+            {up ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
+            {formatINR(Math.abs(data.monthChange))} this month
+          </p>
+        </div>
+
+        {hasAccounts ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:mt-0 lg:w-80 lg:shrink-0">
+            <Card className="gap-1 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Assets</p>
+              <p className="text-xl font-semibold tabular-nums">{formatINR(data.assets)}</p>
+            </Card>
+            <Card className="gap-1 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Liabilities</p>
+              <p className="text-xl font-semibold tabular-nums text-red-600">
+                {formatINR(data.liabilities)}
+              </p>
+            </Card>
+          </div>
+        ) : null}
       </section>
 
       {!hasAccounts ? (
@@ -55,10 +72,10 @@ export default async function DashboardPage() {
           </Link>
         </Card>
       ) : (
-        <>
+        <div className="space-y-6 lg:space-y-0 dashboard-grid">
           {/* Reminders */}
           {reminders.length > 0 ? (
-            <section className="space-y-2">
+            <section className="area-reminders space-y-2">
               <h2 className="px-1 text-sm font-medium text-muted-foreground">Reminders</h2>
               <Card className="divide-y divide-border/60 p-0">
                 {reminders.slice(0, 5).map((r) => {
@@ -71,18 +88,20 @@ export default async function DashboardPage() {
                       className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                     >
                       <div
-                        className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
-                          soon ? "bg-red-500/15 text-red-400" : "bg-muted text-muted-foreground"
+                        className={`bubble-icon size-9 ${
+                          soon
+                            ? "bg-gradient-to-br from-red-300 to-rose-500 text-white"
+                            : "bg-gradient-to-br from-white/80 to-secondary text-muted-foreground"
                         }`}
                       >
-                        <Icon className="size-5" />
+                        <Icon className="size-4.5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{r.title}</p>
                         <p className="truncate text-xs text-muted-foreground first-letter:uppercase">{r.subtitle}</p>
                       </div>
                       {r.amount != null ? (
-                        <span className="text-sm font-semibold tabular-nums text-red-400">
+                        <span className="text-sm font-semibold tabular-nums text-red-600">
                           {formatINR(r.amount)}
                         </span>
                       ) : null}
@@ -93,28 +112,18 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          {/* Assets vs liabilities */}
-          <section className="grid grid-cols-2 gap-3">
-            <Card className="gap-1 p-4">
-              <p className="text-xs font-medium text-muted-foreground">Assets</p>
-              <p className="text-xl font-semibold tabular-nums">{formatINR(data.assets)}</p>
-            </Card>
-            <Card className="gap-1 p-4">
-              <p className="text-xs font-medium text-muted-foreground">Liabilities</p>
-              <p className="text-xl font-semibold tabular-nums text-red-400">
-                {formatINR(data.liabilities)}
-              </p>
-            </Card>
-          </section>
-
           {/* Forecast */}
-          <ForecastSection forecast={forecast} />
+          <div className="area-forecast">
+            <ForecastSection forecast={forecast} />
+          </div>
 
           {/* Trends */}
-          <TrendsSection trends={trends} />
+          <div className="area-trends">
+            <TrendsSection trends={trends} />
+          </div>
 
           {/* Breakdown by account type */}
-          <section className="space-y-2">
+          <section className="area-breakdown space-y-2">
             <h2 className="px-1 text-sm font-medium text-muted-foreground">Breakdown</h2>
             <Card className="divide-y divide-border/60 p-0">
               {data.byType.map((t) => (
@@ -122,7 +131,7 @@ export default async function DashboardPage() {
                   <span className="text-sm font-medium">{t.typeName}</span>
                   <span
                     className={`text-sm font-semibold tabular-nums ${
-                      t.nature === "LIABILITY" ? "text-red-400" : ""
+                      t.nature === "LIABILITY" ? "text-red-600" : ""
                     }`}
                   >
                     {formatINR(t.total)}
@@ -133,7 +142,7 @@ export default async function DashboardPage() {
           </section>
 
           {/* Accounts */}
-          <section className="space-y-2">
+          <section className="area-accounts space-y-2">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-medium text-muted-foreground">Accounts</h2>
               <Link href="/accounts" className="text-sm font-medium text-primary">
@@ -146,7 +155,7 @@ export default async function DashboardPage() {
               ))}
             </Card>
           </section>
-        </>
+        </div>
       )}
     </div>
   );

@@ -27,9 +27,9 @@ export function TrendsSection({ trends }: { trends: Trends }) {
           ))}
         </div>
       </div>
-      <TrendChart title="Savings" group={trends.savings} range={range} accent="#60a5fa" />
-      <TrendChart title="Investments" group={trends.investments} range={range} accent="#34d399" />
-      <TrendChart title="Liabilities" group={trends.liabilities} range={range} accent="#f87171" liability />
+      <TrendChart title="Savings" group={trends.savings} range={range} accent="var(--chart-1)" />
+      <TrendChart title="Investments" group={trends.investments} range={range} accent="var(--chart-4)" />
+      <TrendChart title="Liabilities" group={trends.liabilities} range={range} accent="var(--chart-5)" liability />
     </section>
   );
 }
