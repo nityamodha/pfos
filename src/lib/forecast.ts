@@ -141,34 +141,50 @@ export async function getForecast(accountId?: string, days = 90): Promise<Foreca
       where: { accountId: { in: settlingCards.map((c) => c.id) } },
       select: { accountId: true, amount: true, date: true },
     });
-    const sinceStatement = new Map<string, number>();
-    for (const c of settlingCards) {
-      const cutoff =
-        c.statementDayOfMonth != null ? previousOccurrence(c.statementDayOfMonth, today) : null;
-      if (!cutoff) continue;
-      let sum = 0;
-      for (const e of entries) {
-        if (e.accountId === c.id && startOfDay(e.date) > cutoff) sum += toNumber(e.amount);
-      }
-      sinceStatement.set(c.id, -sum); // net new charges since last statement (positive = more owed)
-    }
 
     for (const c of settlingCards) {
       const owed = c.displayBalance;
       if (owed <= 0) continue;
-      const rawUnbilled = sinceStatement.get(c.id) ?? 0;
-      const unbilled = Math.max(0, Math.min(owed, Math.round(rawUnbilled)));
-      const billed = owed - unbilled;
+      const cutoff =
+        c.statementDayOfMonth != null ? previousOccurrence(c.statementDayOfMonth, today) : null;
+      if (!cutoff) continue;
+
+      // Bucket not-yet-billed charges by the statement cycle each one actually
+      // closes under (a purchase dated further out than the very next statement
+      // — e.g. a post-dated entry — settles on a later cycle, not the next one).
+      const byClose = new Map<string, number>();
+      for (const e of entries) {
+        if (e.accountId !== c.id) continue;
+        const d = startOfDay(e.date);
+        if (d <= cutoff) continue;
+        const close = nextOccurrence(c.statementDayOfMonth!, d);
+        const key = iso(close);
+        byClose.set(key, Math.max(0, (byClose.get(key) ?? 0) - toNumber(e.amount)));
+      }
+
+      const rawTotal = [...byClose.values()].reduce((s, v) => s + v, 0);
+      const totalUnbilled = Math.max(0, Math.min(owed, Math.round(rawTotal)));
+      const scale = rawTotal > 0 ? totalUnbilled / rawTotal : 0;
+      const billed = owed - totalUnbilled;
 
       if (billed > 0) {
         const due = nextOccurrence(c.dueDayOfMonth!, today);
         if (due <= end)
           events.push({ id: `${c.id}:billed`, date: iso(due), label: `${c.name} bill`, amount: -billed, kind: "bill" });
       }
-      if (unbilled > 0) {
-        const due = new Date(cards.find((x) => x.id === c.id)!.unbilledDueDate);
+
+      for (const [closeKey, rawAmount] of [...byClose.entries()].sort()) {
+        const amount = Math.round(rawAmount * scale);
+        if (amount <= 0) continue;
+        const due = nextOccurrence(c.dueDayOfMonth!, addDays(new Date(closeKey), 1));
         if (due <= end)
-          events.push({ id: `${c.id}:unbilled`, date: iso(due), label: `${c.name} bill`, amount: -unbilled, kind: "bill" });
+          events.push({
+            id: `${c.id}:unbilled:${closeKey}`,
+            date: iso(due),
+            label: `${c.name} bill`,
+            amount: -amount,
+            kind: "bill",
+          });
       }
     }
   }
