@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { AuroraBackground } from "@/components/aurora-background";
+import { StudioBackground } from "@/components/studio-background";
 import { ServiceWorker } from "@/components/service-worker";
 import { Toaster } from "@/components/ui/sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const bodyFont = Manrope({
+  variable: "--font-body",
+  subsets: ["latin"],
+});
+
+const statFont = JetBrains_Mono({
+  variable: "--font-stat",
   subsets: ["latin"],
 });
 
@@ -22,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f1eefb",
+  themeColor: "#14161a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -34,9 +39,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} dark h-full antialiased`}>
+    <html lang="en" className={`${bodyFont.variable} ${statFont.variable} dark h-full antialiased`}>
       <body className="bg-background text-foreground min-h-full overflow-x-hidden">
-        <AuroraBackground />
+        <StudioBackground />
         {children}
         <Toaster position="top-center" />
         <ServiceWorker />

@@ -40,7 +40,7 @@ export function TransactionList({
       <Card className="divide-y divide-border/60 p-0">
         {txns.map((t) => {
           const sign = OUTFLOW.has(t.kind) ? "-" : INFLOW.has(t.kind) ? "+" : "";
-          const color = OUTFLOW.has(t.kind) ? "text-red-600" : INFLOW.has(t.kind) ? "text-emerald-600" : "";
+          const color = OUTFLOW.has(t.kind) ? "text-rose-400" : INFLOW.has(t.kind) ? "text-emerald-400" : "";
           const editable = t.kind !== "ADJUSTMENT";
           return (
             <button
@@ -57,7 +57,7 @@ export function TransactionList({
                 <p className="truncate text-xs text-muted-foreground">{subtitle(t)}</p>
               </div>
               <div className="text-right">
-                <p className={`text-sm font-semibold tabular-nums ${color}`}>
+                <p className={`font-mono text-sm font-semibold tabular-nums ${color}`}>
                   {sign}
                   {formatINR(t.amount)}
                 </p>

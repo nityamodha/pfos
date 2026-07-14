@@ -25,7 +25,7 @@ export function LoginForm() {
   }
 
   return (
-    <form action={onSubmit} className="glass-panel flex flex-col gap-4 rounded-2xl p-6">
+    <form action={onSubmit} className="surface-panel flex flex-col gap-4 rounded-2xl p-6">
       <div className="grid gap-1.5">
         <Label htmlFor="username">Username</Label>
         <Input id="username" name="username" autoComplete="username" autoFocus required />

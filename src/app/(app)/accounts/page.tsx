@@ -32,7 +32,7 @@ export default async function AccountsPage() {
             <section key={g.type.id} className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-sm font-medium text-muted-foreground">{g.type.name}</h2>
-                <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                <span className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
                   {formatINR(total)}
                 </span>
               </div>
