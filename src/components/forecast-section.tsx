@@ -75,14 +75,14 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
             <p className="text-sm font-medium text-muted-foreground">
               {forecast.targetName} · next {forecast.days} days
             </p>
-            <p className="text-2xl font-semibold tabular-nums">{formatINR(endBalance)}</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums">{formatINR(endBalance)}</p>
           </div>
           {lowPoint ? (
             <div className="text-right">
               <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                 <TrendingDown className="size-3.5" /> Lowest
               </p>
-              <p className={cn("text-sm font-semibold tabular-nums", negative && "text-red-600")}>
+              <p className={cn("font-mono text-sm font-semibold tabular-nums", negative && "text-rose-400")}>
                 {formatINR(lowPoint.balance)}
               </p>
               <p className="text-xs text-muted-foreground">{lowPoint.label}</p>
@@ -95,8 +95,8 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
             <AreaChart data={points} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
               <defs>
                 <linearGradient id="fill-forecast" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={negative ? "var(--destructive)" : "var(--chart-4)"} stopOpacity={0.4} />
-                  <stop offset="100%" stopColor={negative ? "var(--destructive)" : "var(--chart-4)"} stopOpacity={0.02} />
+                  <stop offset="0%" stopColor={negative ? "var(--destructive)" : "var(--chart-1)"} stopOpacity={0.4} />
+                  <stop offset="100%" stopColor={negative ? "var(--destructive)" : "var(--chart-1)"} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -124,7 +124,7 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
                 type="monotone"
                 dataKey="balance"
                 name="Balance"
-                stroke={negative ? "var(--destructive)" : "var(--chart-4)"}
+                stroke={negative ? "var(--destructive)" : "var(--chart-1)"}
                 strokeWidth={2}
                 fill="url(#fill-forecast)"
               />
@@ -167,7 +167,7 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
                   {formatINR(simAmount)} on {simCard.name} settles from {forecast.targetName} on{" "}
                   <span className="font-medium text-foreground">{simCard.unbilledDueLabel}</span>
                   {negative ? (
-                    <span className="text-red-600"> · dips you below ₹0</span>
+                    <span className="text-rose-400"> · dips you below ₹0</span>
                   ) : (
                     <span> · lowest becomes {formatINR(lowPoint?.balance ?? 0)}</span>
                   )}
@@ -196,8 +196,8 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
                 </div>
                 <span
                   className={cn(
-                    "text-sm font-semibold tabular-nums",
-                    inflow ? "text-emerald-600" : "text-red-600",
+                    "font-mono text-sm font-semibold tabular-nums",
+                    inflow ? "text-emerald-400" : "text-rose-400",
                   )}
                 >
                   {inflow ? "+" : "−"}

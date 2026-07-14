@@ -40,9 +40,9 @@ const KINDS = [
 ];
 
 function kindMeta(kind: string) {
-  if (kind === "INCOME") return { icon: ArrowUpCircle, color: "text-emerald-600", sign: "+" };
-  if (kind === "INVESTMENT") return { icon: TrendingUp, color: "text-blue-600", sign: "−" };
-  return { icon: ArrowDownCircle, color: "text-red-600", sign: "−" };
+  if (kind === "INCOME") return { icon: ArrowUpCircle, color: "text-emerald-400", sign: "+" };
+  if (kind === "INVESTMENT") return { icon: TrendingUp, color: "text-blue-400", sign: "−" };
+  return { icon: ArrowDownCircle, color: "text-rose-400", sign: "−" };
 }
 
 function ordinal(n: number) {
@@ -94,7 +94,7 @@ export function PlannedRules({
                     {r.dayOfMonth ? `Monthly · ${ordinal(r.dayOfMonth)}` : "Monthly"}
                   </p>
                 </div>
-                <span className={cn("text-sm font-semibold tabular-nums", m.color)}>
+                <span className={cn("font-mono text-sm font-semibold tabular-nums", m.color)}>
                   {m.sign}
                   {formatINR(r.amount)}
                 </span>

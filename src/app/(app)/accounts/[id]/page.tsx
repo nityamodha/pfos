@@ -49,7 +49,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       {/* Header */}
       <section className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="bubble-icon size-11 bg-gradient-to-br from-white/80 to-secondary">
+          <div className="icon-chip size-11">
             <Icon className="size-5 text-foreground/70" />
           </div>
           <div className="min-w-0">
@@ -65,11 +65,11 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
           <p className="text-sm text-muted-foreground">
             {isLiability ? "Outstanding" : account.isInvestment ? "Current value" : "Balance"}
           </p>
-          <p className={`text-4xl font-semibold tabular-nums ${isLiability ? "text-red-600" : ""}`}>
+          <p className={`font-mono text-4xl font-semibold tabular-nums ${isLiability ? "text-rose-400" : ""}`}>
             {formatINR(account.displayBalance)}
           </p>
           {gain != null ? (
-            <p className={`mt-1 text-sm font-medium ${gain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            <p className={`mt-1 text-sm font-medium ${gain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
               {gain >= 0 ? "▲" : "▼"} {formatINR(Math.abs(gain))}
               {gainPct != null ? ` (${gainPct >= 0 ? "+" : "−"}${Math.abs(gainPct).toFixed(1)}%)` : ""}
               <span className="text-muted-foreground"> · invested {formatINR(account.invested!)}</span>
@@ -132,8 +132,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                   </p>
                 </div>
                 <span
-                  className={`text-sm font-semibold tabular-nums ${
-                    h.signedAmount >= 0 ? "text-emerald-600" : "text-red-600"
+                  className={`font-mono text-sm font-semibold tabular-nums ${
+                    h.signedAmount >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
                   {h.signedAmount >= 0 ? "+" : "−"}

@@ -15,14 +15,14 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 
 const PALETTE = [
-  "var(--chart-1)", // indigo
-  "var(--chart-2)", // cyan
-  "var(--chart-3)", // violet
-  "var(--chart-4)", // emerald
-  "var(--chart-5)", // rose
-  "#f59e0b", // amber
-  "#f97316", // orange
-  "#16a34a", // green
+  "var(--chart-1)", // teal
+  "var(--chart-2)", // orange
+  "var(--chart-3)", // blue
+  "var(--chart-4)", // red
+  "var(--chart-5)", // violet
+  "#d97706", // amber
+  "#0891b2", // cyan
+  "#65a30d", // green
 ];
 
 type Mode = "total" | "individual";
@@ -50,7 +50,7 @@ export function TrendChart({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className={cn("text-2xl font-semibold tabular-nums", liability && "text-red-600")}>
+          <p className={cn("font-mono text-2xl font-semibold tabular-nums", liability && "text-rose-400")}>
             {formatINR(group.latestTotal)}
           </p>
         </div>
@@ -82,8 +82,8 @@ export function TrendChart({
             <AreaChart data={points} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
               <defs>
                 <linearGradient id={`fill-${title}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={accent} stopOpacity={0.4} />
-                  <stop offset="100%" stopColor={accent} stopOpacity={0.02} />
+                  <stop offset="0%" stopColor={accent} stopOpacity={0.5} />
+                  <stop offset="100%" stopColor={accent} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <XAxis

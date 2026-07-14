@@ -29,12 +29,12 @@ export default async function DashboardPage() {
       <section className="pt-6 lg:flex lg:items-start lg:justify-between lg:gap-6">
         <div>
           <p className="text-sm font-medium text-muted-foreground">Net Worth</p>
-          <h1 className="mt-1 text-5xl font-semibold tracking-tight tabular-nums">
+          <h1 className="mt-1 font-mono text-5xl font-semibold tracking-tight tabular-nums">
             {formatINR(data.netWorth)}
           </h1>
           <p
             className={`mt-2 flex items-center gap-1 text-sm font-medium ${
-              up ? "text-emerald-600" : "text-red-600"
+              up ? "text-emerald-400" : "text-rose-400"
             }`}
           >
             {up ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
@@ -46,11 +46,11 @@ export default async function DashboardPage() {
           <div className="mt-4 grid grid-cols-2 gap-3 lg:mt-0 lg:w-80 lg:shrink-0">
             <Card className="gap-1 p-4">
               <p className="text-xs font-medium text-muted-foreground">Assets</p>
-              <p className="text-xl font-semibold tabular-nums">{formatINR(data.assets)}</p>
+              <p className="font-mono text-xl font-semibold tabular-nums">{formatINR(data.assets)}</p>
             </Card>
             <Card className="gap-1 p-4">
               <p className="text-xs font-medium text-muted-foreground">Liabilities</p>
-              <p className="text-xl font-semibold tabular-nums text-red-600">
+              <p className="font-mono text-xl font-semibold tabular-nums text-rose-400">
                 {formatINR(data.liabilities)}
               </p>
             </Card>
@@ -88,10 +88,8 @@ export default async function DashboardPage() {
                       className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
                     >
                       <div
-                        className={`bubble-icon size-9 ${
-                          soon
-                            ? "bg-gradient-to-br from-red-300 to-rose-500 text-white"
-                            : "bg-gradient-to-br from-white/80 to-secondary text-muted-foreground"
+                        className={`icon-chip size-9 ${
+                          soon ? "bg-destructive/15 text-rose-400 ring-destructive/25" : "text-muted-foreground"
                         }`}
                       >
                         <Icon className="size-4.5" />
@@ -101,7 +99,7 @@ export default async function DashboardPage() {
                         <p className="truncate text-xs text-muted-foreground first-letter:uppercase">{r.subtitle}</p>
                       </div>
                       {r.amount != null ? (
-                        <span className="text-sm font-semibold tabular-nums text-red-600">
+                        <span className="font-mono text-sm font-semibold tabular-nums text-rose-400">
                           {formatINR(r.amount)}
                         </span>
                       ) : null}
@@ -130,8 +128,8 @@ export default async function DashboardPage() {
                 <div key={t.typeId} className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm font-medium">{t.typeName}</span>
                   <span
-                    className={`text-sm font-semibold tabular-nums ${
-                      t.nature === "LIABILITY" ? "text-red-600" : ""
+                    className={`font-mono text-sm font-semibold tabular-nums ${
+                      t.nature === "LIABILITY" ? "text-rose-400" : ""
                     }`}
                   >
                     {formatINR(t.total)}
