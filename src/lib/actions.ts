@@ -84,6 +84,111 @@ export async function createAccount(formData: FormData) {
   revalidateAll();
 }
 
+export type ImportRow = {
+  date: string; // yyyy-mm-dd
+  description: string | null;
+  amount: number; // signed: negative = expense, positive = income
+  categoryId: string | null;
+};
+
+export type ImportResult = {
+  imported: number;
+  skipped: number;
+  errors: { row: number; reason: string }[];
+};
+
+/**
+ * Bulk-import transactions for a single account. Amount sign determines kind
+ * (negative → EXPENSE from the account, positive → INCOME to the account) —
+ * matches typical bank/card statement CSV exports. Each row is posted through
+ * the same postTransaction() engine call as the manual form, one at a time
+ * (not wrapped in a single all-or-nothing DB transaction) so a few malformed
+ * rows don't block the rest of the batch; failures are collected and returned
+ * instead of thrown.
+ */
+export async function importTransactions({
+  accountId,
+  rows,
+}: {
+  accountId: string;
+  rows: ImportRow[];
+}): Promise<ImportResult> {
+  if (!accountId) throw new Error("Account is required");
+  if (!rows.length) return { imported: 0, skipped: 0, errors: [] };
+
+  const [incomeType, expenseType] = await Promise.all([
+    prisma.transactionType.findFirst({ where: { userId: DEFAULT_USER_ID, kind: "INCOME" } }),
+    prisma.transactionType.findFirst({ where: { userId: DEFAULT_USER_ID, kind: "EXPENSE" } }),
+  ]);
+  if (!incomeType) throw new Error("No Income transaction type configured");
+  if (!expenseType) throw new Error("No Expense transaction type configured");
+
+  const dates = rows.map((r) => new Date(r.date));
+  const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+  // Best-effort duplicate guard: skip rows matching an existing transaction on
+  // this account by (date, amount, description) — cheap single query up front
+  // rather than a per-row lookup.
+  const existing = await prisma.transaction.findMany({
+    where: {
+      userId: DEFAULT_USER_ID,
+      OR: [{ fromAccountId: accountId }, { toAccountId: accountId }],
+      date: { gte: minDate, lte: maxDate },
+    },
+    select: { date: true, amount: true, description: true, kind: true },
+  });
+  const existingKeys = new Set(
+    existing.map((t) => dupeKey(t.date, Number(t.amount), t.description, t.kind === "INCOME" ? 1 : -1)),
+  );
+
+  let imported = 0;
+  let skipped = 0;
+  const errors: { row: number; reason: string }[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.amount) {
+      skipped++;
+      errors.push({ row: i, reason: "Amount is zero" });
+      continue;
+    }
+    const sign = row.amount < 0 ? -1 : 1;
+    const key = dupeKey(new Date(row.date), Math.abs(row.amount), row.description, sign);
+    if (existingKeys.has(key)) {
+      skipped++;
+      errors.push({ row: i, reason: "Duplicate of an existing transaction" });
+      continue;
+    }
+
+    try {
+      await postTransaction({
+        typeId: sign < 0 ? expenseType.id : incomeType.id,
+        kind: sign < 0 ? "EXPENSE" : "INCOME",
+        amount: Math.abs(row.amount),
+        date: new Date(row.date),
+        fromAccountId: sign < 0 ? accountId : null,
+        toAccountId: sign > 0 ? accountId : null,
+        categoryId: row.categoryId,
+        description: row.description,
+      });
+      imported++;
+      existingKeys.add(key); // guard against duplicate rows within the same file
+    } catch (e) {
+      skipped++;
+      errors.push({ row: i, reason: e instanceof Error ? e.message : "Could not import" });
+    }
+  }
+
+  if (imported > 0) revalidateAll();
+  return { imported, skipped, errors };
+}
+
+function dupeKey(date: Date, amount: number, description: string | null, sign: number) {
+  const day = date.toISOString().slice(0, 10);
+  return `${day}|${Math.round(amount)}|${sign}|${(description ?? "").trim().toLowerCase()}`;
+}
+
 export async function createTransaction(formData: FormData) {
   const typeId = String(formData.get("typeId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
