@@ -44,6 +44,21 @@ function diffDays(target: Date, from: Date) {
   return Math.round((startOfDay(target).getTime() - startOfDay(from).getTime()) / 86_400_000);
 }
 
+/** Most recent date on/before `from` that falls on `dayOfMonth` (clamped to month length). */
+export function previousOccurrence(dayOfMonth: number, from: Date): Date {
+  const base = startOfDay(from);
+  for (let i = 0; i < 2; i++) {
+    const m = base.getMonth() - i;
+    const year = base.getFullYear() + Math.floor(m / 12);
+    const month = ((m % 12) + 12) % 12;
+    const day = Math.min(dayOfMonth, daysInMonth(year, month));
+    const candidate = new Date(year, month, day);
+    if (candidate <= base) return candidate;
+  }
+  const m = base.getMonth() - 1;
+  return new Date(base.getFullYear() + Math.floor(m / 12), ((m % 12) + 12) % 12, dayOfMonth);
+}
+
 /** Upcoming statement/due reminders for statement-cycle accounts (credit cards), soonest first. */
 export async function getReminders(withinDays = 30): Promise<Reminder[]> {
   const accounts = await getAccountsWithBalances();

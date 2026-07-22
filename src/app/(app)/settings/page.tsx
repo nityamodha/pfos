@@ -4,6 +4,7 @@ import { getMasterData } from "@/lib/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "@/lib/auth-actions";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,12 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="pt-4 text-2xl font-semibold tracking-tight">Settings</h1>
+
+      <Section title="Preferences">
+        <Row label="Theme">
+          <ThemeToggle />
+        </Row>
+      </Section>
 
       <Card className="p-0">
         <Link

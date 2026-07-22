@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { DEFAULT_USER_ID } from "@/lib/constants";
 import { toNumber } from "@/lib/money";
 import { getAccountsWithBalances, type AccountWithBalance } from "@/lib/queries";
-import { nextOccurrence } from "@/lib/reminders";
+import { nextOccurrence, previousOccurrence } from "@/lib/reminders";
 import type {
   Forecast,
   ForecastCard,
@@ -22,30 +22,12 @@ function addDays(d: Date, n: number) {
   x.setDate(x.getDate() + n);
   return x;
 }
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
 function iso(d: Date) {
   const x = startOfDay(d);
   x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
   return x.toISOString().slice(0, 10);
 }
 const shortFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
-
-/** Most recent date on/before `from` that falls on `dayOfMonth` (clamped to month length). */
-function previousOccurrence(dayOfMonth: number, from: Date): Date {
-  const base = startOfDay(from);
-  for (let i = 0; i < 2; i++) {
-    const m = base.getMonth() - i;
-    const year = base.getFullYear() + Math.floor(m / 12);
-    const month = ((m % 12) + 12) % 12;
-    const day = Math.min(dayOfMonth, daysInMonth(year, month));
-    const candidate = new Date(year, month, day);
-    if (candidate <= base) return candidate;
-  }
-  const m = base.getMonth() - 1;
-  return new Date(base.getFullYear() + Math.floor(m / 12), ((m % 12) + 12) % 12, dayOfMonth);
-}
 
 function ruleKind(kind: string, isInflow: boolean): ForecastEventKind {
   if (kind === "INCOME") return "salary";
