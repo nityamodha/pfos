@@ -52,8 +52,57 @@
   --radius-4xl: calc(var(--radius) * 2.5);
 }
 
-/* Depth-layered dark studio — single dark-first theme, no light variant. */
-:root,
+/* Light mode — bright warm-neutral canvas, translucent light glass, same hue
+   family as dark (teal/amber/blue/red/violet) darkened for contrast on white. */
+:root {
+  --surface-0: oklch(0.98 0.004 260);
+  --surface-1: oklch(0.94 0.006 260);
+  --surface-2: oklch(0.9 0.008 260);
+  --surface-3: oklch(0.86 0.01 260);
+
+  --background: var(--surface-0);
+  --foreground: oklch(0.22 0.012 260);
+  --card: oklch(0.99 0.005 260 / 55%);
+  --card-foreground: oklch(0.22 0.012 260);
+  --popover: oklch(0.99 0.005 260 / 78%);
+  --popover-foreground: oklch(0.22 0.012 260);
+
+  --primary: oklch(0.5 0.11 175);
+  --primary-foreground: oklch(0.98 0.008 175);
+  --secondary: oklch(0.9 0.008 260 / 55%);
+  --secondary-foreground: oklch(0.25 0.012 260);
+  --muted: oklch(0.9 0.008 260 / 45%);
+  --muted-foreground: oklch(0.46 0.016 260);
+  --accent: oklch(0.55 0.13 75);
+  --accent-foreground: oklch(0.98 0.008 75);
+  --destructive: oklch(0.52 0.19 20);
+
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 6%);
+  --ring: oklch(0.5 0.11 175 / 45%);
+
+  /* Same hue angles as the dark-mode set (script-validated then), re-tuned for
+     light-surface contrast rather than independently re-validated — the
+     validator wasn't available when authoring this half; re-run it if in doubt. */
+  --chart-1: oklch(0.5 0.11 175);  /* teal */
+  --chart-2: oklch(0.55 0.18 45);  /* orange */
+  --chart-3: oklch(0.5 0.18 255);  /* blue */
+  --chart-4: oklch(0.52 0.19 20);  /* red */
+  --chart-5: oklch(0.48 0.18 295); /* violet */
+
+  --radius: 0.7rem;
+
+  --sidebar: oklch(0.99 0.005 260 / 55%);
+  --sidebar-foreground: oklch(0.25 0.012 260);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.5 0.11 175 / 12%);
+  --sidebar-accent-foreground: oklch(0.4 0.1 175);
+  --sidebar-border: oklch(0 0 0 / 8%);
+  --sidebar-ring: var(--ring);
+}
+
+/* Depth-layered dark studio — the original dark-first theme, unchanged. */
 .dark {
   --surface-0: oklch(0.16 0.014 260);
   --surface-1: oklch(0.205 0.015 260);

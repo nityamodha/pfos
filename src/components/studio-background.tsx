@@ -9,17 +9,19 @@ export function StudioBackground() {
           backgroundSize: "28px 28px",
         }}
       />
-      {/* Glow sources — teal, amber and a center wash — bright enough to read as color through the frosted glass panels. */}
+      {/* Glow sources — teal, amber and a center wash. Dark mode wants them bright
+          enough to read through the frosted glass; light mode needs them much
+          fainter or the tint looks garish against a bright canvas. */}
       <div
-        className="absolute -left-1/4 -top-1/3 size-[48rem] rounded-full opacity-[0.35] blur-[130px]"
+        className="absolute -left-1/4 -top-1/3 size-[48rem] rounded-full opacity-[0.12] blur-[130px] dark:opacity-[0.35]"
         style={{ background: "var(--primary)" }}
       />
       <div
-        className="absolute -bottom-1/3 -right-1/4 size-[44rem] rounded-full opacity-[0.28] blur-[140px]"
+        className="absolute -bottom-1/3 -right-1/4 size-[44rem] rounded-full opacity-[0.09] blur-[140px] dark:opacity-[0.28]"
         style={{ background: "var(--accent)" }}
       />
       <div
-        className="absolute left-1/2 top-1/2 size-[50rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.14] blur-[160px]"
+        className="absolute left-1/2 top-1/2 size-[50rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.05] blur-[160px] dark:opacity-[0.14]"
         style={{ background: "var(--chart-3)" }}
       />
       {/* Vignette to keep edges receding into the canvas — eased back so color still reaches center panels. */}
