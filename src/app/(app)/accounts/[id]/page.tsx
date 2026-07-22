@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getAccountDetail, getMasterData, getAccountsWithBalances } from "@/lib/queries";
+import { getCardCycles } from "@/lib/cycles";
 import { formatINR } from "@/lib/money";
 import { accountIcon } from "@/lib/icons";
 import { Card } from "@/components/ui/card";
 import { SnapshotDialog } from "@/components/snapshot-dialog";
 import { EditAccountForm } from "@/components/edit-account-form";
+import { CycleReport } from "@/components/cycle-report";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +18,11 @@ function fmtDate(d: Date) {
 
 export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [detail, master, allAccounts] = await Promise.all([
+  const [detail, master, allAccounts, cycleReport] = await Promise.all([
     getAccountDetail(id),
     getMasterData(),
     getAccountsWithBalances(),
+    getCardCycles(id),
   ]);
   if (!detail) notFound();
 
@@ -112,6 +115,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
           </Card>
         ) : null}
       </section>
+
+      {account.hasStatementCycle ? <CycleReport report={cycleReport} /> : null}
 
       {/* History */}
       <section className="space-y-2">
