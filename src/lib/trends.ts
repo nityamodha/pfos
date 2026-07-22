@@ -174,7 +174,24 @@ export async function getTrends(): Promise<Trends> {
     groups[bucket].latestTotal = yearPoints.length ? (yearPoints[yearPoints.length - 1].total as number) : 0;
   }
 
-  return groups;
+  // Net worth = savings + investments − liabilities, combined per checkpoint. The three
+  // buckets share the same checkpoint construction (same `earliest`/`range`), so their
+  // series align by index — no need to re-run seriesForCheckpoints over all accounts.
+  const netWorth: TrendGroup = { accounts: [{ id: "net-worth", name: "Net Worth" }], series: emptySeries(), latestTotal: 0 };
+  for (const range of RANGE_KEYS) {
+    const savingsPts = groups.savings.series[range];
+    const investPts = groups.investments.series[range];
+    const liabPts = groups.liabilities.series[range];
+    netWorth.series[range] = savingsPts.map((p, i) => ({
+      label: p.label,
+      total:
+        (p.total as number) + (investPts[i]?.total as number ?? 0) - (liabPts[i]?.total as number ?? 0),
+    }));
+  }
+  const netWorthYear = netWorth.series["1Y"];
+  netWorth.latestTotal = netWorthYear.length ? (netWorthYear[netWorthYear.length - 1].total as number) : 0;
+
+  return { netWorth, ...groups };
 }
 
 function emptySeries(): Record<RangeKey, TrendPoint[]> {
