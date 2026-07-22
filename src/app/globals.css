@@ -209,7 +209,7 @@
     grid-template-columns: minmax(0, 2fr) minmax(20rem, 1fr);
     grid-template-areas:
       "forecast reminders"
-      "forecast breakdown"
+      "forecast budget"
       "trends breakdown"
       "trends accounts";
     align-items: start;
@@ -220,4 +220,5 @@
   .area-trends { grid-area: trends; }
   .area-breakdown { grid-area: breakdown; }
   .area-accounts { grid-area: accounts; }
+  .area-budget { grid-area: budget; }
 }

@@ -18,6 +18,16 @@ function revalidateAll() {
   revalidatePath("/transactions");
 }
 
+export async function updateSavingsTarget(amount: number) {
+  const target = Math.max(0, Math.round(amount));
+  await prisma.user.update({
+    where: { id: DEFAULT_USER_ID },
+    data: { monthlySavingsTarget: toDecimal(target) },
+  });
+  revalidatePath("/");
+  revalidatePath("/settings");
+}
+
 function optionalNumber(v: FormDataEntryValue | null): number | null {
   if (v === null || String(v).trim() === "") return null;
   const n = Number(v);
