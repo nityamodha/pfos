@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { getAccountsWithBalances, getMasterData, getRecentTransactions } from "@/lib/queries";
+import { getCategoryBreakdown } from "@/lib/category-spend";
 import { TransactionList } from "@/components/transaction-list";
+import { CategoryBreakdownSection } from "@/components/category-breakdown";
 import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
-  const [txns, master, accounts] = await Promise.all([
+  const [txns, master, accounts, categoryBreakdown] = await Promise.all([
     getRecentTransactions(),
     getMasterData(),
     getAccountsWithBalances(),
+    getCategoryBreakdown(),
   ]);
 
   return (
@@ -21,6 +24,8 @@ export default async function TransactionsPage() {
           <Upload className="size-4" /> Import CSV
         </Link>
       </div>
+
+      <CategoryBreakdownSection breakdown={categoryBreakdown} />
 
       {txns.length === 0 ? (
         <p className="text-sm text-muted-foreground">No transactions yet.</p>
