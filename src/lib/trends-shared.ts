@@ -16,6 +16,7 @@ export type TrendGroup = {
   latestTotal: number;
 };
 export type Trends = {
+  netWorth: TrendGroup;
   savings: TrendGroup;
   investments: TrendGroup;
   liabilities: TrendGroup;

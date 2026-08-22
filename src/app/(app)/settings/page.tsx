@@ -1,16 +1,25 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getMasterData } from "@/lib/queries";
+import { getMonthlyBudget } from "@/lib/budget";
+import { toNumber } from "@/lib/money";
+import { prisma } from "@/lib/db";
+import { DEFAULT_USER_ID } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BudgetTargetForm } from "@/components/budget-target-form";
 import { logout } from "@/lib/auth-actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const { accountTypes, categories, txnTypes } = await getMasterData();
+  const [{ accountTypes, categories, txnTypes }, budget, user] = await Promise.all([
+    getMasterData(),
+    getMonthlyBudget(),
+    prisma.user.findUniqueOrThrow({ where: { id: DEFAULT_USER_ID }, select: { monthlySavingsTarget: true } }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -19,6 +28,12 @@ export default async function SettingsPage() {
       <Section title="Preferences">
         <Row label="Theme">
           <ThemeToggle />
+        </Row>
+      </Section>
+
+      <Section title="Budget" hint={budget.hasTarget ? budget.targetName ?? undefined : undefined}>
+        <Row label="Monthly savings target">
+          <BudgetTargetForm initialTarget={toNumber(user.monthlySavingsTarget)} />
         </Row>
       </Section>
 

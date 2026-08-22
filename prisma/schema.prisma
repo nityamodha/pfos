@@ -56,6 +56,8 @@ model User {
   passwordHash String?
   name      String?
   baseCurrency String @default("INR")
+  // Minimum balance the primary account should still hold at month end (net-worth frame).
+  monthlySavingsTarget Decimal @default(0) @db.Decimal(18, 2)
   createdAt DateTime @default(now())
 
   accounts     Account[]

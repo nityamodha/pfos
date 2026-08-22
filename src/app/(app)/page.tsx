@@ -4,21 +4,24 @@ import { getDashboard } from "@/lib/queries";
 import { getReminders } from "@/lib/reminders";
 import { getTrends } from "@/lib/trends";
 import { getForecast } from "@/lib/forecast";
+import { getMonthlyBudget } from "@/lib/budget";
 import { formatINR } from "@/lib/money";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { AccountRow } from "@/components/account-row";
 import { TrendsSection } from "@/components/trends-section";
 import { ForecastSection } from "@/components/forecast-section";
+import { BudgetCard } from "@/components/budget-card";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [data, reminders, trends, forecast] = await Promise.all([
+  const [data, reminders, trends, forecast, budget] = await Promise.all([
     getDashboard(),
     getReminders(),
     getTrends(),
     getForecast(),
+    getMonthlyBudget(),
   ]);
   const hasAccounts = data.accounts.length > 0;
   const up = data.monthChange >= 0;
@@ -114,6 +117,13 @@ export default async function DashboardPage() {
           <div className="area-forecast">
             <ForecastSection forecast={forecast} />
           </div>
+
+          {/* Monthly spending budget */}
+          {budget.hasTarget ? (
+            <div className="area-budget">
+              <BudgetCard budget={budget} />
+            </div>
+          ) : null}
 
           {/* Trends */}
           <div className="area-trends">
