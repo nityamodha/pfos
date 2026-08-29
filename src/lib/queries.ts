@@ -2,7 +2,15 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { DEFAULT_USER_ID } from "@/lib/constants";
 import { displayBalance, toNumber } from "@/lib/money";
+import { nextOccurrence } from "@/lib/reminders";
 import type { AccountNature } from "@/generated/prisma/client";
+
+function isoDate(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+  return x.toISOString().slice(0, 10);
+}
 
 export type AccountWithBalance = {
   id: string;
@@ -165,6 +173,8 @@ export type RecurringRuleItem = {
   dayOfMonth: number | null;
   frequency: string;
   isActive: boolean;
+  confirmedThrough: string | null;
+  nextOccurrenceDate: string | null;
 };
 
 export async function getRecurringRules(): Promise<RecurringRuleItem[]> {
@@ -172,17 +182,30 @@ export async function getRecurringRules(): Promise<RecurringRuleItem[]> {
     where: { userId: DEFAULT_USER_ID },
     orderBy: [{ dayOfMonth: "asc" }, { name: "asc" }],
   });
-  return rules.map((r) => ({
-    id: r.id,
-    name: r.name,
-    kind: r.kind,
-    amount: toNumber(r.amount),
-    fromAccountId: r.fromAccountId,
-    toAccountId: r.toAccountId,
-    dayOfMonth: r.dayOfMonth,
-    frequency: r.frequency,
-    isActive: r.isActive,
-  }));
+  const today = new Date();
+  return rules.map((r) => {
+    let nextOccurrenceDate: string | null = null;
+    if (r.dayOfMonth != null) {
+      let d = nextOccurrence(r.dayOfMonth, today);
+      while (r.confirmedThrough && d <= r.confirmedThrough) {
+        d = nextOccurrence(r.dayOfMonth, new Date(d.getTime() + 86_400_000));
+      }
+      nextOccurrenceDate = isoDate(d);
+    }
+    return {
+      id: r.id,
+      name: r.name,
+      kind: r.kind,
+      amount: toNumber(r.amount),
+      fromAccountId: r.fromAccountId,
+      toAccountId: r.toAccountId,
+      dayOfMonth: r.dayOfMonth,
+      frequency: r.frequency,
+      isActive: r.isActive,
+      confirmedThrough: r.confirmedThrough ? isoDate(r.confirmedThrough) : null,
+      nextOccurrenceDate,
+    };
+  });
 }
 
 /** Master data for pickers. */

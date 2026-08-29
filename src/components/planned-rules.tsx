@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, ArrowDownCircle, ArrowUpCircle, TrendingUp } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, TrendingUp, CheckCircle2, Undo2 } from "lucide-react";
 import {
   createRecurringRule,
   updateRecurringRule,
   deleteRecurringRule,
+  confirmRecurringOccurrence,
+  resetRecurringConfirmation,
 } from "@/lib/actions";
 import type { RecurringRuleItem } from "@/lib/queries";
 import { formatINR } from "@/lib/format";
@@ -51,6 +53,11 @@ function ordinal(n: number) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+function fmtShortDate(isoDate: string) {
+  const d = new Date(isoDate + "T00:00:00");
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(d);
+}
+
 export function PlannedRules({
   rules,
   accounts,
@@ -60,6 +67,25 @@ export function PlannedRules({
 }) {
   const [editing, setEditing] = useState<RecurringRuleItem | null>(null);
   const [adding, setAdding] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function markDone(r: RecurringRuleItem) {
+    if (!r.nextOccurrenceDate) return;
+    startTransition(async () => {
+      await confirmRecurringOccurrence(r.id, r.nextOccurrenceDate!);
+      toast.success("Marked done");
+      router.refresh();
+    });
+  }
+
+  function resetConfirmation(r: RecurringRuleItem) {
+    startTransition(async () => {
+      await resetRecurringConfirmation(r.id);
+      toast.success("Confirmation reset");
+      router.refresh();
+    });
+  }
 
   return (
     <>
@@ -81,24 +107,48 @@ export function PlannedRules({
             const m = kindMeta(r.kind);
             const Icon = m.icon;
             return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setEditing(r)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-              >
-                <Icon className={cn("size-5 shrink-0", m.color)} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.dayOfMonth ? `Monthly · ${ordinal(r.dayOfMonth)}` : "Monthly"}
-                  </p>
-                </div>
+              <div key={r.id} className="flex w-full items-center gap-3 px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setEditing(r)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                >
+                  <Icon className={cn("size-5 shrink-0", m.color)} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{r.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {r.dayOfMonth ? `Monthly · ${ordinal(r.dayOfMonth)}` : "Monthly"}
+                      {r.nextOccurrenceDate ? ` · next ${fmtShortDate(r.nextOccurrenceDate)}` : ""}
+                      {r.confirmedThrough ? ` · confirmed thru ${fmtShortDate(r.confirmedThrough)}` : ""}
+                    </p>
+                  </div>
+                </button>
+                {r.confirmedThrough ? (
+                  <button
+                    type="button"
+                    title="Undo confirmation"
+                    disabled={pending}
+                    onClick={() => resetConfirmation(r)}
+                    className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                  >
+                    <Undo2 className="size-4" />
+                  </button>
+                ) : r.nextOccurrenceDate ? (
+                  <button
+                    type="button"
+                    title="Mark next occurrence as already happened"
+                    disabled={pending}
+                    onClick={() => markDone(r)}
+                    className="text-muted-foreground transition-colors hover:text-emerald-400 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="size-4" />
+                  </button>
+                ) : null}
                 <span className={cn("font-mono text-sm font-semibold tabular-nums", m.color)}>
                   {m.sign}
                   {formatINR(r.amount)}
                 </span>
-              </button>
+              </div>
             );
           })}
         </Card>

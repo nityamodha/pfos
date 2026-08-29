@@ -5,6 +5,16 @@ import { toNumber } from "@/lib/money";
 import { getForecast } from "@/lib/forecast";
 import type { MonthlyBudget } from "@/lib/budget-shared";
 
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+/** Whether an ISO date falls in the last 3 days of its own month, regardless of month length. */
+function isMonthEnd(isoDate: string): boolean {
+  const d = new Date(isoDate + "T00:00:00");
+  return d.getDate() >= daysInMonth(d.getFullYear(), d.getMonth()) - 2;
+}
+
 /**
  * How much more the primary account could still spend this month before dropping
  * below the configured savings target — reuses the forecast's day-by-day projection
@@ -35,12 +45,20 @@ export async function getMonthlyBudget(): Promise<MonthlyBudget> {
     };
   }
 
+  // Salary landing in the last few days of the month is really meant to fund next
+  // month, not top up this one — exclude it from the budget's own projection (the
+  // dashboard Forecast chart is untouched and still shows the real balance).
+  const monthEndSalary = forecast.events
+    .filter((e) => e.kind === "salary" && isMonthEnd(e.date))
+    .reduce((s, e) => s + e.amount, 0);
+  const projectedMonthEnd = forecast.endBalance - monthEndSalary;
+
   return {
     hasTarget: true,
     targetName: forecast.targetName,
     savingsTarget,
-    projectedMonthEnd: forecast.endBalance,
-    remaining: Math.round(forecast.endBalance - savingsTarget),
+    projectedMonthEnd,
+    remaining: Math.round(projectedMonthEnd - savingsTarget),
     daysLeft,
   };
 }

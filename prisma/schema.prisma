@@ -342,6 +342,9 @@ model RecurringRule {
   dayOfMonth Int?
   nextRunAt DateTime?
   isActive  Boolean  @default(true)
+  // Latest nominal occurrence date the user has confirmed already happened (possibly
+  // a few days early) — the forecast skips generating events on/before this date.
+  confirmedThrough DateTime?
   createdAt DateTime @default(now())
 
   @@index([userId])
