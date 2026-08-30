@@ -71,9 +71,9 @@ export function PlannedRules({
   const router = useRouter();
 
   function markDone(r: RecurringRuleItem) {
-    if (!r.nextOccurrenceDate) return;
+    if (!r.pendingConfirmDate) return;
     startTransition(async () => {
-      await confirmRecurringOccurrence(r.id, r.nextOccurrenceDate!);
+      await confirmRecurringOccurrence(r.id, r.pendingConfirmDate!);
       toast.success("Marked done");
       router.refresh();
     });
@@ -133,10 +133,10 @@ export function PlannedRules({
                   >
                     <Undo2 className="size-4" />
                   </button>
-                ) : r.nextOccurrenceDate ? (
+                ) : r.pendingConfirmDate ? (
                   <button
                     type="button"
-                    title="Mark next occurrence as already happened"
+                    title={`Mark ${fmtShortDate(r.pendingConfirmDate)} as already happened`}
                     disabled={pending}
                     onClick={() => markDone(r)}
                     className="text-muted-foreground transition-colors hover:text-emerald-400 disabled:opacity-50"

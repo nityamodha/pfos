@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { DEFAULT_USER_ID } from "@/lib/constants";
 import { displayBalance, toNumber } from "@/lib/money";
-import { nextOccurrence } from "@/lib/reminders";
+import { nextOccurrence, previousOccurrence } from "@/lib/reminders";
 import type { AccountNature } from "@/generated/prisma/client";
 
 function isoDate(d: Date) {
@@ -174,7 +174,8 @@ export type RecurringRuleItem = {
   frequency: string;
   isActive: boolean;
   confirmedThrough: string | null;
-  nextOccurrenceDate: string | null;
+  nextOccurrenceDate: string | null; // informational "next" label only
+  pendingConfirmDate: string | null; // the date "mark done" actually confirms
 };
 
 export async function getRecurringRules(): Promise<RecurringRuleItem[]> {
@@ -185,12 +186,20 @@ export async function getRecurringRules(): Promise<RecurringRuleItem[]> {
   const today = new Date();
   return rules.map((r) => {
     let nextOccurrenceDate: string | null = null;
+    let pendingConfirmDate: string | null = null;
     if (r.dayOfMonth != null) {
       let d = nextOccurrence(r.dayOfMonth, today);
       while (r.confirmedThrough && d <= r.confirmedThrough) {
         d = nextOccurrence(r.dayOfMonth, new Date(d.getTime() + 86_400_000));
       }
       nextOccurrenceDate = isoDate(d);
+
+      // If the most recent nominal occurrence already passed (by calendar) and hasn't
+      // been confirmed yet, that's what "mark done" should confirm — not whatever the
+      // *next* occurrence rolled forward to, which hasn't happened yet.
+      const prev = previousOccurrence(r.dayOfMonth, today);
+      const pending = !r.confirmedThrough || prev > r.confirmedThrough ? prev : null;
+      pendingConfirmDate = isoDate(pending ?? d);
     }
     return {
       id: r.id,
@@ -204,6 +213,7 @@ export async function getRecurringRules(): Promise<RecurringRuleItem[]> {
       isActive: r.isActive,
       confirmedThrough: r.confirmedThrough ? isoDate(r.confirmedThrough) : null,
       nextOccurrenceDate,
+      pendingConfirmDate,
     };
   });
 }
