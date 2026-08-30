@@ -351,6 +351,24 @@ export async function deleteRecurringRule(formData: FormData) {
   revalidatePath("/planned");
 }
 
+/** Mark a recurring rule's occurrence as already happened, so the forecast stops
+ * projecting a duplicate for it. Never moves confirmedThrough backward. */
+export async function confirmRecurringOccurrence(ruleId: string, occurrenceDate: string) {
+  const rule = await prisma.recurringRule.findUniqueOrThrow({ where: { id: ruleId } });
+  const occurrence = new Date(occurrenceDate + "T00:00:00");
+  const confirmedThrough =
+    rule.confirmedThrough && rule.confirmedThrough > occurrence ? rule.confirmedThrough : occurrence;
+  await prisma.recurringRule.update({ where: { id: ruleId }, data: { confirmedThrough } });
+  revalidateAll();
+  revalidatePath("/planned");
+}
+
+export async function resetRecurringConfirmation(ruleId: string) {
+  await prisma.recurringRule.update({ where: { id: ruleId }, data: { confirmedThrough: null } });
+  revalidateAll();
+  revalidatePath("/planned");
+}
+
 export async function archiveAccount(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Account is required");

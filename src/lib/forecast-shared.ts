@@ -8,6 +8,7 @@ export type ForecastEvent = {
   label: string;
   amount: number; // signed: + inflow, − outflow
   kind: ForecastEventKind;
+  ruleId: string | null; // backing RecurringRule, if any — null for card-bill events
 };
 
 export type ForecastPoint = {

@@ -103,6 +103,12 @@ export async function getForecast(accountId?: string, days = 90): Promise<Foreca
     if (!isInflow && !isOutflow) continue;
     const amount = toNumber(r.amount) * (isInflow ? 1 : -1);
     let d = nextOccurrence(r.dayOfMonth, today);
+    // Skip occurrences already confirmed as happened (even a few days early), so a
+    // real transaction that posts ahead of its nominal day doesn't also get a
+    // duplicate synthetic projection here.
+    while (r.confirmedThrough && d <= r.confirmedThrough) {
+      d = nextOccurrence(r.dayOfMonth, addDays(d, 1));
+    }
     let guard = 0;
     while (d <= end && guard++ < 60) {
       events.push({
@@ -111,6 +117,7 @@ export async function getForecast(accountId?: string, days = 90): Promise<Foreca
         label: r.name,
         amount,
         kind: ruleKind(r.kind, isInflow),
+        ruleId: r.id,
       });
       d = nextOccurrence(r.dayOfMonth, addDays(d, 1));
     }
@@ -152,7 +159,7 @@ export async function getForecast(accountId?: string, days = 90): Promise<Foreca
       if (billed > 0) {
         const due = nextOccurrence(c.dueDayOfMonth!, today);
         if (due <= end)
-          events.push({ id: `${c.id}:billed`, date: iso(due), label: `${c.name} bill`, amount: -billed, kind: "bill" });
+          events.push({ id: `${c.id}:billed`, date: iso(due), label: `${c.name} bill`, amount: -billed, kind: "bill", ruleId: null });
       }
 
       for (const [closeKey, rawAmount] of [...byClose.entries()].sort()) {
@@ -166,6 +173,7 @@ export async function getForecast(accountId?: string, days = 90): Promise<Foreca
             label: `${c.name} bill`,
             amount: -amount,
             kind: "bill",
+            ruleId: null,
           });
       }
     }

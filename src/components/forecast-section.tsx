@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { CalendarClock, TrendingDown } from "lucide-react";
+import { CalendarClock, CheckCircle2, TrendingDown } from "lucide-react";
 import type { Forecast, ForecastPoint } from "@/lib/forecast-shared";
+import { confirmRecurringOccurrence } from "@/lib/actions";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -21,6 +24,16 @@ import { buttonVariants } from "@/components/ui/button";
 export function ForecastSection({ forecast }: { forecast: Forecast }) {
   const [cardId, setCardId] = useState("");
   const [amountStr, setAmountStr] = useState("");
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function markDone(ruleId: string, date: string) {
+    startTransition(async () => {
+      await confirmRecurringOccurrence(ruleId, date);
+      toast.success("Marked done");
+      router.refresh();
+    });
+  }
 
   const simCard = forecast.cards.find((c) => c.id === cardId) ?? null;
   const simAmount = Number(amountStr) || 0;
@@ -194,6 +207,17 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
                   <p className="truncate text-sm font-medium">{e.label}</p>
                   <p className="text-xs text-muted-foreground">{fmtEventDate(e.date)}</p>
                 </div>
+                {e.ruleId ? (
+                  <button
+                    type="button"
+                    title="Mark as already happened"
+                    disabled={pending}
+                    onClick={() => markDone(e.ruleId!, e.date)}
+                    className="text-muted-foreground transition-colors hover:text-emerald-400 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="size-4" />
+                  </button>
+                ) : null}
                 <span
                   className={cn(
                     "font-mono text-sm font-semibold tabular-nums",
