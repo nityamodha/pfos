@@ -77,9 +77,14 @@ export function ForecastSection({ forecast }: { forecast: Forecast }) {
     <section className="space-y-3">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-sm font-medium text-muted-foreground">Forecast</h2>
-        <Link href="/planned" className="text-sm font-medium text-primary">
-          Manage plan
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/forecast" className="text-sm font-medium text-primary">
+            Full history
+          </Link>
+          <Link href="/planned" className="text-sm font-medium text-primary">
+            Manage plan
+          </Link>
+        </div>
       </div>
 
       <Card className="gap-3 p-4">
