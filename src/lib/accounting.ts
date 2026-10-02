@@ -18,6 +18,7 @@ import { toDecimal } from "@/lib/money";
  */
 
 type SignedEntry = { accountId: string; amount: Prisma.Decimal };
+type DbClient = typeof prisma | Prisma.TransactionClient;
 
 export type PostTransactionInput = {
   typeId: string;
@@ -58,12 +59,12 @@ function deriveEntries(kind: TxnKind, amount: Prisma.Decimal, input: PostTransac
 }
 
 /** Create a transaction and its ledger entries atomically. */
-export async function postTransaction(input: PostTransactionInput) {
+export async function postTransaction(input: PostTransactionInput, db: DbClient = prisma) {
   const amount = toDecimal(input.amount);
   if (amount.lte(0)) throw new Error("Amount must be greater than zero");
   const entries = deriveEntries(input.kind, amount, input);
 
-  return prisma.transaction.create({
+  return db.transaction.create({
     data: {
       userId: DEFAULT_USER_ID,
       typeId: input.typeId,

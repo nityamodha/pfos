@@ -10,6 +10,7 @@ import {
   Circle,
   type LucideIcon,
 } from "lucide-react";
+import { type ComponentProps } from "react";
 
 const map: Record<string, LucideIcon> = {
   landmark: Landmark,
@@ -25,4 +26,29 @@ const map: Record<string, LucideIcon> = {
 
 export function accountIcon(name: string | null | undefined): LucideIcon {
   return (name && map[name]) || Circle;
+}
+
+type AccountIconProps = { icon: string | null | undefined } & ComponentProps<typeof Circle>;
+
+export function AccountIcon({ icon, ...props }: AccountIconProps) {
+  switch (icon) {
+    case "landmark":
+      return <Landmark {...props} />;
+    case "wallet":
+      return <Wallet {...props} />;
+    case "credit-card":
+      return <CreditCard {...props} />;
+    case "chart-line":
+      return <ChartLine {...props} />;
+    case "trending-up":
+      return <TrendingUp {...props} />;
+    case "piggy-bank":
+      return <PiggyBank {...props} />;
+    case "coins":
+      return <Coins {...props} />;
+    case "hand-coins":
+      return <HandCoins {...props} />;
+    default:
+      return <Circle {...props} />;
+  }
 }

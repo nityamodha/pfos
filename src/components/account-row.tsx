@@ -2,10 +2,9 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { AccountWithBalance } from "@/lib/queries";
 import { formatINR } from "@/lib/money";
-import { accountIcon } from "@/lib/icons";
+import { AccountIcon } from "@/lib/icons";
 
 export function AccountRow({ account }: { account: AccountWithBalance }) {
-  const Icon = accountIcon(account.icon);
   const isLiability = account.nature === "LIABILITY";
   const gain =
     account.isInvestment && account.invested != null
@@ -15,7 +14,7 @@ export function AccountRow({ account }: { account: AccountWithBalance }) {
   return (
     <Link href={`/accounts/${account.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
       <div className="icon-chip size-9">
-        <Icon className="size-4.5 text-foreground/70" />
+        <AccountIcon icon={account.icon} className="size-4.5 text-foreground/70" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{account.name}</p>

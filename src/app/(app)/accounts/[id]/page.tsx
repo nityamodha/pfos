@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { getAccountDetail, getMasterData, getAccountsWithBalances } from "@/lib/queries";
 import { getCardCycles } from "@/lib/cycles";
 import { formatINR } from "@/lib/money";
-import { accountIcon } from "@/lib/icons";
+import { AccountIcon } from "@/lib/icons";
 import { Card } from "@/components/ui/card";
 import { SnapshotDialog } from "@/components/snapshot-dialog";
 import { EditAccountForm } from "@/components/edit-account-form";
@@ -31,7 +31,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const settlementAccounts = allAccounts
     .filter((a) => a.nature === "ASSET" && !a.isInvestment && a.id !== account.id)
     .map((a) => ({ id: a.id, name: a.name }));
-  const Icon = accountIcon(account.icon);
   const isLiability = account.nature === "LIABILITY";
 
   const gain =
@@ -53,7 +52,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       <section className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="icon-chip size-11">
-            <Icon className="size-5 text-foreground/70" />
+            <AccountIcon icon={account.icon} className="size-5 text-foreground/70" />
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-xl font-semibold tracking-tight">{account.name}</h1>

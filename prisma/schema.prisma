@@ -45,30 +45,53 @@ enum TxnKind {
   SNAPSHOT
 }
 
+enum AutomationSourceKind {
+  GMAIL
+}
+
+enum EmailProcessingStatus {
+  PENDING
+  PROCESSED
+  IGNORED
+  ERROR
+}
+
+enum TransactionProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DUPLICATE
+  NEEDS_REVIEW
+}
+
 // ─────────────────────────────────────────────────────────────
 // Identity (no auth yet — a single default user is seeded)
 // ─────────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  email     String?  @unique
-  username  String?  @unique
-  passwordHash String?
-  name      String?
-  baseCurrency String @default("INR")
+  id                   String   @id @default(cuid())
+  email                String?  @unique
+  username             String?  @unique
+  passwordHash         String?
+  name                 String?
+  baseCurrency         String   @default("INR")
   // Minimum balance the primary account should still hold at month end (net-worth frame).
-  monthlySavingsTarget Decimal @default(0) @db.Decimal(18, 2)
-  createdAt DateTime @default(now())
+  monthlySavingsTarget Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt            DateTime @default(now())
 
-  accounts     Account[]
-  transactions Transaction[]
-  categories   Category[]
-  accountTypes AccountType[]
-  txnTypes     TransactionType[]
-  tags         Tag[]
-  goals        Goal[]
-  recurring    RecurringRule[]
-  sessions     Session[]
+  accounts             Account[]
+  transactions         Transaction[]
+  categories           Category[]
+  accountTypes         AccountType[]
+  txnTypes             TransactionType[]
+  tags                 Tag[]
+  goals                Goal[]
+  recurring            RecurringRule[]
+  sessions             Session[]
+  automationSources    AutomationSource[]
+  rawFinancialEmails   RawFinancialEmail[]
+  transactionProposals TransactionProposal[]
+  automationRules      AutomationRule[]
 }
 
 // Simple DB-backed session (no external auth library — single-user app).
@@ -87,20 +110,20 @@ model Session {
 // ─────────────────────────────────────────────────────────────
 
 model AccountType {
-  id        String        @id @default(cuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  nature    AccountNature
-  icon      String?
-  color     String?
-  sortOrder Int           @default(0)
-  isSystem  Boolean       @default(false)
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  nature            AccountNature
+  icon              String?
+  color             String?
+  sortOrder         Int           @default(0)
+  isSystem          Boolean       @default(false)
   // Investment accounts track invested vs current value (for gain/loss); drives the add form.
-  isInvestment Boolean    @default(false)
+  isInvestment      Boolean       @default(false)
   // Statement-cycle accounts (credit cards) capture a statement day + due day, used for reminders.
-  hasStatementCycle Boolean @default(false)
-  createdAt DateTime      @default(now())
+  hasStatementCycle Boolean       @default(false)
+  createdAt         DateTime      @default(now())
 
   accounts Account[]
 
@@ -121,7 +144,8 @@ model Category {
   isSystem  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  transactions Transaction[]
+  transactions         Transaction[]
+  transactionProposals TransactionProposal[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -177,11 +201,11 @@ model Account {
   openingDate    DateTime @default(now())
 
   // Optional metadata used by the dashboard / reminders
-  institution String?
-  last4       String?
+  institution         String?
+  last4               String?
   statementDayOfMonth Int? // for credit cards: statement/closing day of the cycle
   dueDayOfMonth       Int? // for credit cards: bill due day
-  note        String?
+  note                String?
 
   isActive   Boolean @default(true)
   isArchived Boolean @default(false)
@@ -198,8 +222,10 @@ model Account {
 
   ledgerEntries LedgerEntry[]
   snapshots     Snapshot[]
-  txnFrom       Transaction[] @relation("fromAccount")
-  txnTo         Transaction[] @relation("toAccount")
+  txnFrom       Transaction[]         @relation("fromAccount")
+  txnTo         Transaction[]         @relation("toAccount")
+  proposalFrom  TransactionProposal[] @relation("proposalFromAccount")
+  proposalTo    TransactionProposal[] @relation("proposalToAccount")
 
   @@index([userId])
   @@index([userId, accountTypeId])
@@ -236,8 +262,9 @@ model Transaction {
   snapshotId String?   @unique
   snapshot   Snapshot? @relation(fields: [snapshotId], references: [id])
 
-  entries LedgerEntry[]
-  tags    TransactionTag[]
+  entries            LedgerEntry[]
+  tags               TransactionTag[]
+  automationProposal TransactionProposal?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -306,19 +333,19 @@ model Snapshot {
 // ─────────────────────────────────────────────────────────────
 
 model Goal {
-  id           String    @id @default(cuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name         String
-  targetAmount Decimal   @db.Decimal(18, 2)
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  targetAmount     Decimal   @db.Decimal(18, 2)
   // Either tracked manually or linked to accounts (sum of their balances)
-  manualAmount Decimal?  @db.Decimal(18, 2)
-  linkedAccountIds String[] @default([])
-  targetDate   DateTime?
-  icon         String?
-  color        String?
-  sortOrder    Int       @default(0)
-  createdAt    DateTime  @default(now())
+  manualAmount     Decimal?  @db.Decimal(18, 2)
+  linkedAccountIds String[]  @default([])
+  targetDate       DateTime?
+  icon             String?
+  color            String?
+  sortOrder        Int       @default(0)
+  createdAt        DateTime  @default(now())
 
   @@index([userId])
 }
@@ -328,24 +355,133 @@ model Goal {
 // ─────────────────────────────────────────────────────────────
 
 model RecurringRule {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  kind      TxnKind
-  amount    Decimal  @db.Decimal(18, 2)
-  fromAccountId String?
-  toAccountId   String?
-  categoryId    String?
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  kind             TxnKind
+  amount           Decimal   @db.Decimal(18, 2)
+  fromAccountId    String?
+  toAccountId      String?
+  categoryId       String?
   // cron-ish schedule
-  frequency String // e.g. MONTHLY, WEEKLY
-  dayOfMonth Int?
-  nextRunAt DateTime?
-  isActive  Boolean  @default(true)
+  frequency        String // e.g. MONTHLY, WEEKLY
+  dayOfMonth       Int?
+  nextRunAt        DateTime?
+  isActive         Boolean   @default(true)
   // Latest nominal occurrence date the user has confirmed already happened (possibly
   // a few days early) — the forecast skips generating events on/before this date.
   confirmedThrough DateTime?
-  createdAt DateTime @default(now())
+  createdAt        DateTime  @default(now())
 
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Automation inbox
+// ─────────────────────────────────────────────────────────────
+
+model AutomationSource {
+  id                String               @id @default(cuid())
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind              AutomationSourceKind
+  name              String
+  externalAccountId String?
+  lastSyncedAt      DateTime?
+  rawMetadata       Json?
+  isActive          Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  emails RawFinancialEmail[]
+  rules  AutomationRule[]
+
+  @@unique([userId, kind, externalAccountId])
+  @@index([userId])
+}
+
+model RawFinancialEmail {
+  id       String           @id @default(cuid())
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceId String
+  source   AutomationSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  externalMessageId String
+  threadId          String?
+  from              String?
+  subject           String?
+  snippet           String?
+  bodyHash          String?
+  receivedAt        DateTime
+  processingStatus  EmailProcessingStatus @default(PENDING)
+  processingError   String?
+  rawMetadata       Json?
+
+  proposals TransactionProposal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceId, externalMessageId])
+  @@index([userId, receivedAt])
+  @@index([sourceId, processingStatus])
+}
+
+model TransactionProposal {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawEmailId String?
+  rawEmail   RawFinancialEmail? @relation(fields: [rawEmailId], references: [id], onDelete: SetNull)
+
+  status        TransactionProposalStatus @default(PENDING)
+  kind          TxnKind
+  date          DateTime
+  amount        Decimal                   @db.Decimal(18, 2)
+  description   String?
+  note          String?
+  categoryId    String?
+  category      Category?                 @relation(fields: [categoryId], references: [id])
+  fromAccountId String?
+  fromAccount   Account?                  @relation("proposalFromAccount", fields: [fromAccountId], references: [id])
+  toAccountId   String?
+  toAccount     Account?                  @relation("proposalToAccount", fields: [toAccountId], references: [id])
+
+  merchantName     String?
+  referenceText    String?
+  confidence       Decimal? @db.Decimal(5, 4)
+  extractionNotes  String?
+  extractedPayload Json?
+
+  approvedTransactionId String?      @unique
+  approvedTransaction   Transaction? @relation(fields: [approvedTransactionId], references: [id], onDelete: SetNull)
+  reviewedAt            DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([userId, status, date])
+  @@index([rawEmailId])
+  @@index([categoryId])
+  @@index([fromAccountId])
+  @@index([toAccountId])
+}
+
+model AutomationRule {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceId   String?
+  source     AutomationSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  name       String
+  isActive   Boolean           @default(true)
+  priority   Int               @default(100)
+  matchJson  Json
+  actionJson Json
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([userId, isActive, priority])
+  @@index([sourceId])
 }

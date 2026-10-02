@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Wallet, Plus, ArrowLeftRight, Settings, CalendarClock, TrendingUp, Zap, LogOut } from "lucide-react";
+import { Home, Wallet, Plus, ArrowLeftRight, Settings, CalendarClock, TrendingUp, Zap, LogOut, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth-actions";
 
@@ -10,6 +10,7 @@ const items = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/transactions", label: "Activity", icon: ArrowLeftRight },
+  { href: "/automation", label: "Automation", icon: Bot },
   { href: "/planned", label: "Planned", icon: CalendarClock },
   { href: "/forecast", label: "Forecast", icon: TrendingUp },
   { href: "/settings", label: "Settings", icon: Settings },
